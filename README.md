@@ -10,9 +10,9 @@ Download the `database/` and `parquet/` folders and place them in the project ro
 
 The project uses two DuckDB databases:
 
-| Database | Purpose |
-|---|---|
-| `ebird.duckdb` | Species, geography, annual and monthly observation trends |
+| Database             | Purpose                                                                      |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `ebird.duckdb`       | Species, geography, annual and monthly observation trends                    |
 | `ebird_daily.duckdb` | Holiday dates, annual average daily bird counts, and holiday-specific counts |
 
 ## 🚀 Quick Start
@@ -30,6 +30,7 @@ The server runs at http://127.0.0.1:3000.
 
 - [Species Trend Visualization](http://127.0.0.1:3000/test.html) — Northern Cardinal observations in Massachusetts (2012–2025).
 - [Holiday Comparison Visualization](http://127.0.0.1:3000/holiday-test.html) — Compare holiday bird counts with annual average daily counts across multiple years.
+- [U.S. Map](http://127.0.0.1:3000/us-map-test.html) - Display and switch views on the U.S map.
 
 ### API Test Endpoints
 
@@ -42,7 +43,7 @@ The server runs at http://127.0.0.1:3000.
 
 **Python is ONLY used for offline data processing and testing.**
 
-The application itself uses **Node.js + Express, DuckDB, and D3.js**.
+The application itself uses **Node.js + Express, DuckDB, D3.js, and topojson**.
 
 Python is not required to run the application when the processed project data has already been downloaded.
 
@@ -72,14 +73,14 @@ ebird/
 
 ### Main Database — `ebird.duckdb`
 
-| Table | Description |
-|---|---|
-| `taxa` | Bird taxonomy and species identifiers |
-| `states` | State codes, names, and observation totals |
-| `counties` | County codes, names, and observation totals |
-| `species_region_year` | Annual species observation counts by state/county |
-| `species_region_month` | Monthly species observation counts by state/county |
-| `summary_completed_years` | Years covered by the generated summaries |
+| Table                     | Description                                        |
+| ------------------------- | -------------------------------------------------- |
+| `taxa`                    | Bird taxonomy and species identifiers              |
+| `states`                  | State codes, names, and observation totals         |
+| `counties`                | County codes, names, and observation totals        |
+| `species_region_year`     | Annual species observation counts by state/county  |
+| `species_region_month`    | Monthly species observation counts by state/county |
+| `summary_completed_years` | Years covered by the generated summaries           |
 
 Inspect the main database:
 
@@ -89,11 +90,11 @@ python scripts/inspect_duckdb.py
 
 ### Holiday Database — `ebird_daily.duckdb`
 
-| Table | Description |
-|---|---|
-| `holidays` | U.S. holiday dates and names |
+| Table                     | Description                                                           |
+| ------------------------- | --------------------------------------------------------------------- |
+| `holidays`                | U.S. holiday dates and names                                          |
 | `species_region_year_avg` | Annual average daily reported bird counts by species and state/county |
-| `species_region_holiday` | Holiday-specific reported bird counts by species and state/county |
+| `species_region_holiday`  | Holiday-specific reported bird counts by species and state/county     |
 
 Inspect the holiday database:
 
