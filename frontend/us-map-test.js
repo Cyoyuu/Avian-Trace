@@ -86,7 +86,7 @@ const countyTooltip = d3.select("body")
 // Keep track of the current state of the map, which updates per every user interaction with the map
 const mapState = {
   currentView: "state",   // state view or county view
-  currentStateCode: null, // the ID of the currently selected state (null when in state view)
+  currentStateId: null,   // the ID of the currently selected state (null when in state view)
   currentCounties: [],    // the list of counties in the selected state
   selectedCountyId: null, // the ID of the selected county
   countyPath: null        // D3 geographic path generator; calculates county boundaries and geographic positions on the map
@@ -160,13 +160,13 @@ function setUpBackButton() {
 // ====================================================================
 
 // Filter counties which belongs to the selected state
-function getCountiesByState(stateCode, allCounties) {
+function getCountiesByState(stateId, allCounties) {
   return {
     type: "FeatureCollection",
     // Each county ID is represented by a 5-digit code. We filter counties by 
     // the first two digits of the code, which correspond to the ID of a state
     features: allCounties.features.filter(d =>
-      String(d.id).padStart(5, "0").slice(0, 2) === stateCode
+      String(d.id).padStart(5, "0").slice(0, 2) === stateId
     )
   };
 }
@@ -309,10 +309,10 @@ function renderCountyMap(counties) {
 }
 
 // Switch to county view
-async function showCountyView(stateCode) {
+async function showCountyView(stateId) {
   // Update map state upon entering county view
   mapState.currentView = "county";
-  mapState.currentStateCode = stateCode;
+  mapState.currentStateId = stateId;
   mapState.selectedCountyId = null;
 
   // Display the back button
@@ -325,7 +325,7 @@ async function showCountyView(stateCode) {
 
   // Load county data and filter counties which belongs to the selected state
   const allCounties = await loadCountyData();
-  const counties = getCountiesByState(stateCode, allCounties);
+  const counties = getCountiesByState(stateId, allCounties);
 
   // Update map state
   mapState.currentCounties = counties.features;
@@ -407,7 +407,7 @@ function renderStateMap(states) {
 async function showStateView() {
   // Update map state upon entering the state view
   mapState.currentView = "state";
-  mapState.currentStateCode = null;
+  mapState.currentStateId = null;
   mapState.selectedCountyId = null;
   mapState.currentCounties = [];
 
