@@ -2,15 +2,33 @@
 <html>
   <head>
     <title>US Bird Map</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="us-map-styles.css" />
   </head>
   <body>
-    <h1>U.S. Bird Observation Map</h1>
-
     <div class="map-header">
+      <!-- Button that redirects the user back to the state view of the map -->
       <button id="backButton">← Back to U.S. Map</button>
     </div>
-    <div id="map"></div>
+
+    <div class="map-layout">
+      <!-- The U.S. map, with state and county views -->
+      <div id="map"></div>
+
+      <!-- The sidebar for inspecting a county within a selected state -->
+      <div class="county-sidebar">
+        <h3>Counties</h3>
+        <!-- County search bar -->
+        <input
+          type="text"
+          id="county-search"
+          placeholder="Search counties..."
+        />
+        <!-- The number of counties within the selected state -->
+        <div id="county-count"></div>
+        <!-- The complete list of counties within the selected state -->
+        <ul id="county-list"></ul>
+      </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
