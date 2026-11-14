@@ -5,8 +5,11 @@
   gap: 20px;
 }
 
-/* Button that redirects the user back to the state view of the map */
-#backButton {
+/* 
+  backButton: Button that redirects the user back to the state view of the map 
+  sortButton: Button that globally sort task graphs accordingly
+  */
+#backButton, #sortButton{
   display: none;
   padding: 10px 8px;
   border: 1px solid #d1d5db;
@@ -17,11 +20,11 @@
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
 }
-#backButton:hover {
+#backButton:hover, #sortButton:hover {
   background: #f3f4f6;
   border-color: #9ca3af;
 }
-#backButton:active {
+#backButton:active, #sortButton:active {
   background: #e5e7eb;
 }
 

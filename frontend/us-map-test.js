@@ -2,6 +2,7 @@
 
 // Test the map: "npm start", then http://127.0.0.1:3000/us-map-test.html
 
+import { renderRichnessRankingChart } from "./task1-chart.js";
 
 // ====================================================================
 // Configurations
@@ -40,6 +41,9 @@ const MAP_COLORS = {
   border: "white" // border between states or between counties
 };
 
+// Limit for task 1
+const RICHNESS_RANKING_LIMIT = 10;
+
 // ====================================================================
 // Data Loading
 // ====================================================================
@@ -67,6 +71,32 @@ async function loadCountyData() {
 }
 
 // ====================================================================
+// Information Fetching Through Backend API
+// ====================================================================
+
+// Load richness ranking among counties of a selected state from the database
+// Used to visualize Task 1: Geographic Species Richness.
+async function loadRichnessRanking(regionLevel, stateCode, startYear, endYear, 
+                                   limit, sortOrder) {
+  const params = new URLSearchParams({
+    regionLevel,
+    stateCode,
+    startYear,
+    endYear,
+    limit,
+    sortOrder
+  });
+
+  const response = await fetch(
+    `/api/richness-ranking?${params}`
+  );
+  if (!response.ok) throw new Error("Failed to load richness ranking");
+
+  const result = await response.json();
+  return result.data;
+}
+
+// ====================================================================
 // Components
 // ====================================================================
 
@@ -89,8 +119,14 @@ const mapState = {
   currentStateId: null,   // the ID of the currently selected state (null when in state view)
   currentCounties: [],    // the list of counties in the selected state
   selectedCountyId: null, // the ID of the selected county
-  countyPath: null        // D3 geographic path generator; calculates county boundaries and geographic positions on the map
+  countyPath: null,       // D3 geographic path generator; calculates county boundaries and geographic positions on the map
+  currentRichnessRanking: [] // the richness ranking of counties within the selected state
 };
+
+// Keep track of the current state of the task graphs
+const taskGraphState = {
+  sortOrder: "desc"       // the global sort order for values in each task graph
+}
 
 // ====================================================================
 // Tooltip Functions
@@ -156,6 +192,81 @@ function setUpBackButton() {
 }
 
 // ====================================================================
+// Sort Button Function
+// ====================================================================
+
+// Add functionalities to the sort button
+function setUpSortButton() {
+  d3.select("#sortButton")
+    .on("click", function() {
+      // Early return if no county is currently selected
+      if (!mapState.selectedCountyId) return;
+
+      // Update the sort order
+      taskGraphState.sortOrder = taskGraphState.sortOrder === "desc" ? "asc" : "desc";
+
+      // Update sort button label
+      d3.select(this).text(
+        taskGraphState.sortOrder === "desc"
+          ? "Richness: High to Low ↓"
+          : "Richness: Low to High ↑"
+      );
+
+      // Retrieve the state id from county id
+      const stateId = mapState.selectedCountyId.slice(0, 2);
+      // Convert state id to state abbreviation
+      const abbreviation = STATE_ABBREVIATIONS[stateId];
+      // Compose region code using state abbreviation and the last 3 digits of county id
+      const regionCode = `US-${abbreviation}-${mapState.selectedCountyId.slice(2)}`;
+
+      // Re-render graph for Task 1
+      renderRichnessRankingChart(
+        mapState.currentRichnessRanking,
+        regionCode,
+        handleCountySelection,
+        taskGraphState.sortOrder);
+    });
+}
+
+// ====================================================================
+// Task Graph Removers
+// ====================================================================
+
+// IDs of visualizations for each task
+const GRAPH_CONTAINERS = [
+  "#richness-chart"
+];
+
+// Remove the graphs for each task
+function clearGraphs() {
+  GRAPH_CONTAINERS.forEach(selector => {
+    d3.select(selector)
+      .selectAll("*")
+      .remove();
+  });
+}
+
+// ====================================================================
+// Function Helpers
+// ====================================================================
+
+function getCountyNameFromRegionCode(regionCode) {
+  const match = regionCode.match(/^US-([A-Z]{2})-(\d{3})$/);
+  if (!match) return "Unknown County";
+
+  const [, abbreviation, countyCode] = match;
+  const stateId = Object.keys(STATE_ABBREVIATIONS)
+    .find(id => STATE_ABBREVIATIONS[id] === abbreviation);
+  if (!stateId) return "Unknown County";
+
+  const countyId = `${stateId}${countyCode}`;
+  const county = mapState.currentCounties.find(d =>
+    String(d.id).padStart(5, "0") === countyId
+  );
+  return county ? county.properties.name : "Unknown County";
+}
+
+// ====================================================================
 // County View
 // ====================================================================
 
@@ -208,6 +319,27 @@ function selectCounty(countyId) {
   console.log(`Selected county: ${selected.properties.name}`);
 }
 
+// Select the county and update task graphs accordingly
+function handleCountySelection(countyId) {
+  // Retrieve the state id from county id
+  const stateId = countyId.slice(0, 2);
+  // Convert state id to state abbreviation
+  const abbreviation = STATE_ABBREVIATIONS[stateId];
+  // Compose region code using state abbreviation and the last 3 digits of county id
+  const regionCode = `US-${abbreviation}-${countyId.slice(2)}`;
+
+  // Update map and sidebar
+  selectCounty(countyId);
+
+  // Update bar chart highlighting
+  renderRichnessRankingChart(
+    mapState.currentRichnessRanking,
+    regionCode,
+    handleCountySelection,
+    taskGraphState.sortOrder
+  );
+}
+
 // Initialize the county-searching mechanism in the sidebar
 function setUpSearch() {
   d3.select("#county-search")
@@ -250,7 +382,8 @@ function renderCountyList(counties) {
       String(d.id) === String(mapState.selectedCountyId)
     )
     .on("click", (event, d) => {
-      selectCounty(d.id);
+      // Select the county and update task graphs accordingly
+      handleCountySelection(d.id); // county id
     });
 }
 
@@ -300,7 +433,8 @@ function renderCountyMap(counties) {
     })
     // Select the county upon clicking its corresponding polygon
     .on("click", function(event, d) {
-      selectCounty(d.id);
+      // Select the county and update task graphs accordingly
+      handleCountySelection(d.id); // county id
     });
 
   // Create a text label for displaying the name of the selected county
@@ -319,6 +453,10 @@ async function showCountyView(stateId) {
   d3.select("#backButton")
     .style("display", "block");
 
+  // Display the sort button
+  d3.select("#sortButton")
+    .style("display", "block");
+
   // Display the sidebar
   d3.select(".county-sidebar")
     .style("display", "flex");
@@ -330,9 +468,36 @@ async function showCountyView(stateId) {
   // Update map state
   mapState.currentCounties = counties.features;
 
+  // Get the abbreviation of the selected state as part of
+  // the state code argument used for loading richness ranking
+  const stateAbbreviation = STATE_ABBREVIATIONS[stateId];
+  // Load richness ranking for selected state
+  mapState.currentRichnessRanking = await loadRichnessRanking(
+    "county", 
+    `US-${stateAbbreviation}`, 
+    2012, 
+    2025,
+    RICHNESS_RANKING_LIMIT,
+    taskGraphState.sortOrder
+  );
+  // Add county name to each of the element of the data returned
+  mapState.currentRichnessRanking = mapState.currentRichnessRanking.map(d => ({
+    ...d,
+    county_name: getCountyNameFromRegionCode(d.region_code)
+  }));
+  console.log("currentRichnessRanking: ", mapState.currentRichnessRanking)
+
   // Render map (county polygons) and the sidebar
   renderCountyMap(counties);
   renderCountyList(counties.features);
+
+  // Render the initial chart without a selected county
+  renderRichnessRankingChart(
+    mapState.currentRichnessRanking, 
+    null, 
+    handleCountySelection,
+    taskGraphState.sortOrder
+  );
 }
 
 // ================================================================
@@ -415,9 +580,16 @@ async function showStateView() {
   d3.select("#backButton")
     .style("display", "none");
 
+  // Hide the sort button
+  d3.select("#sortButton")
+    .style("display", "none");
+
   // Hide the sidebar
   d3.select(".county-sidebar")
     .style("display", "none");
+
+  // Remove the graphs for each task
+  clearGraphs()
 
   // Hide the tooltip (which should only be used inside county view)
   hideCountyTooltip();
@@ -439,6 +611,8 @@ async function initializeMap() {
   setUpSearch();
   // Initialize the back button in county view
   setUpBackButton();
+  // Initialize the sort button
+  setUpSortButton();
 
   try {
     // Render the map with the state view

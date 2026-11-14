@@ -8,11 +8,17 @@
     <div class="map-header">
       <!-- Button that redirects the user back to the state view of the map -->
       <button id="backButton">← Back to U.S. Map</button>
+
+      <!-- Button that globally controlls the sorting order of task graphs -->
+      <button id="sortButton">Richness: High to Low ↓</button>
     </div>
 
     <div class="map-layout">
       <!-- The U.S. map, with state and county views -->
       <div id="map"></div>
+
+      <!-- Bar chart for Task 1 -->
+      <div id="richness-chart"></div>
 
       <!-- The sidebar for inspecting a county within a selected state -->
       <div class="county-sidebar">
@@ -32,6 +38,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
-    <script src="us-map-test.js"></script>
+    <script type="module" src="us-map-test.js"></script>
   </body>
 </html>
