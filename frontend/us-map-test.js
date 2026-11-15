@@ -199,9 +199,6 @@ function setUpBackButton() {
 function setUpSortButton() {
   d3.select("#sortButton")
     .on("click", function() {
-      // Early return if no county is currently selected
-      if (!mapState.selectedCountyId) return;
-
       // Update the sort order
       taskGraphState.sortOrder = taskGraphState.sortOrder === "desc" ? "asc" : "desc";
 
@@ -212,12 +209,17 @@ function setUpSortButton() {
           : "Richness: Low to High ↑"
       );
 
-      // Retrieve the state id from county id
-      const stateId = mapState.selectedCountyId.slice(0, 2);
-      // Convert state id to state abbreviation
-      const abbreviation = STATE_ABBREVIATIONS[stateId];
-      // Compose region code using state abbreviation and the last 3 digits of county id
-      const regionCode = `US-${abbreviation}-${mapState.selectedCountyId.slice(2)}`;
+      let regionCode = null;
+      if (mapState.selectedCountyId) {
+        // Retrieve the state id from county id
+        const stateId = mapState.selectedCountyId.slice(0, 2);
+        // Convert state id to state abbreviation
+        const abbreviation = STATE_ABBREVIATIONS[stateId];
+        // Compose region code using state abbreviation and the last 3 digits of county id
+        regionCode = `US-${abbreviation}-${mapState.selectedCountyId.slice(2)}`;
+      } else {
+        regionCode = null
+      }
 
       // Re-render graph for Task 1
       renderRichnessRankingChart(
