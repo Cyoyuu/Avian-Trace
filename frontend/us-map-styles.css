@@ -1,0 +1,117 @@
+/* Map header: Anything located above the US map */
+.map-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* 
+  backButton: Button that redirects the user back to the state view of the map 
+  sortButton: Button that globally sort task graphs accordingly
+  */
+#backButton, #sortButton{
+  display: none;
+  padding: 10px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  color: #374151;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+#backButton:hover, #sortButton:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+#backButton:active, #sortButton:active {
+  background: #e5e7eb;
+}
+
+/* Labels for states and counties */
+.state-label {
+  font-size: 12px;
+  font-weight: 300;
+  text-anchor: middle; /* Horizontally centering the label */
+  dominant-baseline: central; /* Vertically centering the label */
+  pointer-events: none; /* Enable clicking through label to zoom in a state */
+}
+.county-label {
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+/* Tooltip that displays detailed information when hovering over a county */
+.county-tooltip {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 12px;
+  pointer-events: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  white-space: nowrap;
+}
+
+/* The US map and the sidebar */
+.map-layout {
+  display: flex;
+  width: 100%;
+  height: 600px;
+  gap: 20px;
+}
+
+/* The US map */
+#map {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+/* The sidebar */
+.county-sidebar {
+  display: none;
+  width: 240px;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+/* The search bar which takes in user text input to select a county */
+#county-search {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 12px;
+}
+/* The sentence which displays the number of counties in the selected state */
+#county-count {
+  font-size: 12px;
+  color: #666;
+}
+
+/* The complete, interactable list of counties within the selected state */
+#county-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}
+/* The elements inside the county list */
+#county-list li {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+#county-list li:hover {
+  background: #eff6ff;
+}
+#county-list li.selected {
+  background: #bfdbfe;
+  font-weight: bold;
+}

@@ -28,30 +28,27 @@ const PORT = 3000;
 const HOST = "127.0.0.1";
 
 function parseFilters(req) {
-  const region = String(req.query.region ?? "US-MA");
-  const level = String(req.query.level ?? "state");
-  const from = Number(req.query.from ?? 2012);
-  const to = Number(req.query.to ?? 2025);
+  const regionLevel = String(req.query.regionLevel ?? "state");
+  const stateCode = String(req.query.stateCode ?? "US-MA");
+  const startYear = Number(req.query.startYear ?? 2012);
+  const endYear = Number(req.query.endYear ?? 2025);
   const limit = Number(req.query.limit ?? 10);
+  const sortOrder = String(req.query.sortOrder ?? "desc");
 
-  if (!["state", "county"].includes(level)) {
+  if (!["state", "county"].includes(regionLevel)) {
     throw new Error("Invalid region level");
   }
 
-  if (
-    !/^[A-Z0-9-]{2,30}$/.test(region) ||
-    (level === "state" && !/^US-[A-Z]{2}$/.test(region)) ||
-    (level === "county" && !/^US-[A-Z]{2}-[0-9]{3}$/.test(region))
-  ) {
-    throw new Error("Invalid region code");
+  if (regionLevel === "county" && !/^US-[A-Z]{2}$/.test(stateCode)) {
+    throw new Error("Invalid state code");
   }
 
   if (
-    !Number.isInteger(from) ||
-    !Number.isInteger(to) ||
-    from < 2012 ||
-    to > 2026 ||
-    from > to
+    !Number.isInteger(startYear) ||
+    !Number.isInteger(endYear) ||
+    startYear < 2012 ||
+    endYear > 2026 ||
+    startYear > endYear
   ) {
     throw new Error("Invalid year range");
   }
@@ -60,7 +57,11 @@ function parseFilters(req) {
     throw new Error("Limit must be between 1 and 100");
   }
 
-  return { region, level, from, to, limit };
+  if (!["asc", "desc"].includes(sortOrder)) {
+    throw new Error("Invalid sort order");
+  }
+
+  return { regionLevel, stateCode, startYear, endYear, limit, sortOrder };
 }
 
 function endpoint(handler) {
@@ -88,11 +89,11 @@ app.get("/api/health", (req, res) => {
     status: "ok",
     service: "eBird API"
   });
-});
+}); 
 
 app.get("/api/region-summary", endpoint(
   (req, f) => getRegionSummary(
-    f.region, f.level, f.from, f.to
+    f.regionCode, f.regionLevel, f.startYear, f.endYear
   )
 ));
 
@@ -105,25 +106,25 @@ app.get("/api/species-trend", endpoint(
     }
 
     return getSpeciesTrend(
-      f.region, f.level, taxonId, f.from, f.to
+      f.regionCode, f.regionLevel, taxonId, f.startYear, f.endYear
     );
   }
 ));
 
 app.get("/api/richness-ranking", endpoint(
   (req, f) => getRichnessRanking(
-    f.level,
-    f.level === "county"
-      ? String(req.query.state ?? "US-MA")
-      : null,
-    f.from,
-    f.to
+    f.regionLevel,
+    f.regionLevel === "county" ? f.stateCode : null,
+    f.startYear,
+    f.endYear,
+    f.limit,
+    f.sortOrder
   )
 ));
 
 app.get("/api/top-species", endpoint(
   (req, f) => getTopSpecies(
-    f.region, f.level, f.from, f.to, f.limit
+    f.regionCode, f.regionLevel, f.startYear, f.endYear, f.limit
   )
 ));
 
