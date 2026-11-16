@@ -30,7 +30,7 @@ The server runs at http://127.0.0.1:3000.
 
 - [Species Trend Visualization](http://127.0.0.1:3000/test.html) — Northern Cardinal observations in Massachusetts (2012–2025).
 - [Holiday Comparison Visualization](http://127.0.0.1:3000/holiday-test.html) — Compare holiday bird counts with annual average daily counts across multiple years.
-- [U.S. Map](http://127.0.0.1:3000/us-map-test.html) - Display and switch views on the U.S map.
+- [U.S. Map](http://127.0.0.1:3000/us-map.html) - Display and switch views on the U.S map.
 
 ### API Test Endpoints
 
