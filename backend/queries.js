@@ -122,3 +122,14 @@ export function getTopSpecies(regionCode, regionLevel, startYear, endYear, limit
     LIMIT $5
   `, [regionLevel, regionCode, startYear, endYear, limit]);
 }
+
+export async function getTaxonNameMap() {
+  return query(`
+    SELECT DISTINCT
+      taxon_id,
+      common_name
+    FROM taxa
+    WHERE category = 'species'
+    ORDER BY common_name;
+  `);
+}

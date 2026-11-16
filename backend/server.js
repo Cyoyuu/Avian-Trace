@@ -6,7 +6,8 @@ import {
   getRegionSummary,
   getSpeciesTrend,
   getRichnessRanking,
-  getTopSpecies
+  getTopSpecies,
+  getTaxonNameMap
 } from "./queries.js";
 
 import registerHolidayRoutes from "./holiday-route.cjs";
@@ -28,8 +29,10 @@ const PORT = 3000;
 const HOST = "127.0.0.1";
 
 function parseFilters(req) {
+  const regionCode = String(req.query.regionCode ?? "US-MA");
   const regionLevel = String(req.query.regionLevel ?? "state");
   const stateCode = String(req.query.stateCode ?? "US-MA");
+  const taxonId = String(req.query.taxonId ?? "avibase-00AF5DA1");
   const startYear = Number(req.query.startYear ?? 2012);
   const endYear = Number(req.query.endYear ?? 2025);
   const limit = Number(req.query.limit ?? 10);
@@ -61,7 +64,7 @@ function parseFilters(req) {
     throw new Error("Invalid sort order");
   }
 
-  return { regionLevel, stateCode, startYear, endYear, limit, sortOrder };
+  return { regionCode, regionLevel, stateCode, taxonId, startYear, endYear, limit, sortOrder };
 }
 
 function endpoint(handler) {
@@ -99,14 +102,8 @@ app.get("/api/region-summary", endpoint(
 
 app.get("/api/species-trend", endpoint(
   (req, f) => {
-    const taxonId = String(req.query.taxon_id ?? "");
-
-    if (!/^avibase-[A-Za-z0-9-]+$/.test(taxonId)) {
-      throw new Error("Missing or invalid taxon_id");
-    }
-
     return getSpeciesTrend(
-      f.regionCode, f.regionLevel, taxonId, f.startYear, f.endYear
+      f.regionCode, f.regionLevel, f.taxonId, f.startYear, f.endYear
     );
   }
 ));
@@ -127,6 +124,16 @@ app.get("/api/top-species", endpoint(
     f.regionCode, f.regionLevel, f.startYear, f.endYear, f.limit
   )
 ));
+
+app.get("/api/taxa/names", async (req, res) => {
+  try {
+    const result = await getTaxonNameMap();
+    res.json(result.data);
+  } catch (err) {
+    console.error("Failed to retrieve taxon names:", err);
+    res.status(500).json({ error: "Failed to retrieve taxon names" });
+  }
+});
 
 registerHolidayRoutes(app);
 

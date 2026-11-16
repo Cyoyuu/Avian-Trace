@@ -1,8 +1,26 @@
 // JSON data on states and counties: https://github.com/topojson/us-atlas
 
-// Test the map: "npm start", then http://127.0.0.1:3000/us-map-test.html
+// Test the map: "npm start", then http://127.0.0.1:3000/us-map.html
 
-import { renderRichnessRankingChart } from "./task1-chart.js";
+import { 
+  loadRichnessRanking, 
+  loadSpeciesTrend 
+} from "./api/info-loader.js";
+import { renderRichnessRankingChart } from "./charts/task1-chart.js";
+import { renderSpeciesTrendChart } from "./charts/task2-chart.js";
+import { 
+  getCountyIdFromRegionCode,
+  getCountiesByStateId 
+} from "./helpers/location-converter.js";
+import { loadTaxonNameMap } from "./helpers/taxon-converter.js";
+import { setUpBackButton } from "./helpers/backbutton-initializer.js";
+import { setUpSearch } from "./helpers/searchbar-initializer.js";
+import { 
+  showCountyTooltip,
+  moveCountyTooltip,
+  hideCountyTooltip
+} from "./helpers/tooltip-handler.js";
+import { clearCharts } from "./helpers/task-chart-remover.js";
 
 // ====================================================================
 // Configurations
@@ -13,7 +31,7 @@ const WIDTH = 960;
 const HEIGHT = 600;
 
 // The mapping of state ID (from TopoJSON) to state abbreviations
-const STATE_ABBREVIATIONS = {
+export const STATE_ABBREVIATIONS = {
     "01": "AL", "02": "AK", "04": "AZ",
     "05": "AR", "06": "CA", "08": "CO",
     "09": "CT", "10": "DE", "11": "DC",
@@ -33,6 +51,13 @@ const STATE_ABBREVIATIONS = {
     "54": "WV", "55": "WI", "56": "WY"
 };
 
+// The mapping of state ID (from TopoJSON) to the fullname of the corresponding state
+let STATE_ID_TO_NAME_MAP = new Map();
+
+// The mapping of taxon ID to taxon common name
+// Each taxon ID has its own unique species common name
+const TAXON_ID_TO_NAME_MAP = await loadTaxonNameMap();
+
 // Colors for the state and county polygons
 const MAP_COLORS = {
   default: "#bfdbfe",
@@ -41,7 +66,7 @@ const MAP_COLORS = {
   border: "white" // border between states or between counties
 };
 
-// Limit for task 1
+// Limit for Task 1
 const RICHNESS_RANKING_LIMIT = 10;
 
 // ====================================================================
@@ -71,32 +96,6 @@ async function loadCountyData() {
 }
 
 // ====================================================================
-// Information Fetching Through Backend API
-// ====================================================================
-
-// Load richness ranking among counties of a selected state from the database
-// Used to visualize Task 1: Geographic Species Richness.
-async function loadRichnessRanking(regionLevel, stateCode, startYear, endYear, 
-                                   limit, sortOrder) {
-  const params = new URLSearchParams({
-    regionLevel,
-    stateCode,
-    startYear,
-    endYear,
-    limit,
-    sortOrder
-  });
-
-  const response = await fetch(
-    `/api/richness-ranking?${params}`
-  );
-  if (!response.ok) throw new Error("Failed to load richness ranking");
-
-  const result = await response.json();
-  return result.data;
-}
-
-// ====================================================================
 // Components
 // ====================================================================
 
@@ -106,89 +105,22 @@ const svg = d3.select("#map")
   .attr("width", WIDTH)
   .attr("height", HEIGHT);
 
-// Tooltip which displays detailed information when hover over a county
-const countyTooltip = d3.select("body")
-  .append("div")
-  .attr("class", "county-tooltip")
-  .style("position", "absolute") // make the tooltip follow the cursor rather than placed at the bottom
-  .style("visibility", "hidden");
-
 // Keep track of the current state of the map, which updates per every user interaction with the map
 const mapState = {
   currentView: "state",   // state view or county view
   currentStateId: null,   // the ID of the currently selected state (null when in state view)
   currentCounties: [],    // the list of counties in the selected state
-  selectedCountyId: null, // the ID of the selected county
+  currentCountyId: null, // the ID of the selected county
   countyPath: null,       // D3 geographic path generator; calculates county boundaries and geographic positions on the map
-  currentRichnessRanking: [] // the richness ranking of counties within the selected state
+  currentRichnessRanking: [],  // the richness ranking of counties within the selected state
+  currentTaxonId: null,   // the taxon of the current interested species (e.g. "avibase-00AF5DA1")
+  currentStartYear: 2012, // the start of the year filter
+  currentEndYear: 2025    // the end of the year filter
 };
 
-// Keep track of the current state of the task graphs
-const taskGraphState = {
-  sortOrder: "desc"       // the global sort order for values in each task graph
-}
-
-// ====================================================================
-// Tooltip Functions
-// ====================================================================
-
-// Display the tooltip
-function showCountyTooltip(event, countyName) {
-  countyTooltip
-    .style("visibility", "visible")
-    .style("left", `${event.pageX + 10}px`)
-    .style("top", `${event.pageY + 10}px`)
-    .html(""); // clear existing tooltip content before displaying information for another county
-
-  countyTooltip
-    .append("strong")
-    .text("County: ");
-
-  countyTooltip
-    .append("span")
-    .text(countyName);
-}
-
-// Make the tooltip follow cursor movement
-function moveCountyTooltip(event) {
-  countyTooltip
-    .style("left", `${event.pageX + 10}px`)
-    .style("top", `${event.pageY + 10}px`);
-}
-
-// Hide the tooltip
-function hideCountyTooltip() {
-  countyTooltip.style("visibility", "hidden");
-}
-
-// ====================================================================
-// Back Button Function
-// ====================================================================
-
-// Add functionalities to the back button
-function setUpBackButton() {
-  d3.select("#backButton")
-    .on("click", function() {
-      // Hide county sidebar
-      d3.select(".county-sidebar")
-        .style("display", "none");
-
-      // Clear content in county search bar
-      d3.select("#county-search")
-        .property("value", "");
-
-      // Reset the county count
-      d3.select("#county-count")
-        .text("");
-
-      // Clear the county list
-      d3.select("#county-list")
-        .selectAll("*")
-        .remove();
-      
-      // Display the state view of the map
-      showStateView();
-    });
+// Keep track of the current state of the task charts
+const taskChartState = {
+  sortOrder: "desc"       // the global sort order for values in each task chart
 }
 
 // ====================================================================
@@ -199,94 +131,174 @@ function setUpBackButton() {
 function setUpSortButton() {
   d3.select("#sortButton")
     .on("click", function() {
-      // Early return if no county is currently selected
-      if (!mapState.selectedCountyId) return;
-
       // Update the sort order
-      taskGraphState.sortOrder = taskGraphState.sortOrder === "desc" ? "asc" : "desc";
+      taskChartState.sortOrder = taskChartState.sortOrder === "desc" ? "asc" : "desc";
 
       // Update sort button label
       d3.select(this).text(
-        taskGraphState.sortOrder === "desc"
+        taskChartState.sortOrder === "desc"
           ? "Richness: High to Low ↓"
           : "Richness: Low to High ↑"
       );
 
-      // Retrieve the state id from county id
-      const stateId = mapState.selectedCountyId.slice(0, 2);
-      // Convert state id to state abbreviation
-      const abbreviation = STATE_ABBREVIATIONS[stateId];
-      // Compose region code using state abbreviation and the last 3 digits of county id
-      const regionCode = `US-${abbreviation}-${mapState.selectedCountyId.slice(2)}`;
+      let regionCode = null;
+      if (mapState.currentCountyId) {
+        // Retrieve the state id from county id
+        const stateId = mapState.currentCountyId.slice(0, 2);
+        // Convert state id to state abbreviation
+        const abbreviation = STATE_ABBREVIATIONS[stateId];
+        // Compose region code using state abbreviation and the last 3 digits of county id
+        regionCode = `US-${abbreviation}-${mapState.currentCountyId.slice(2)}`;
+      } else {
+        regionCode = null
+      }
 
-      // Re-render graph for Task 1
+      // Update the bar chart for Task 1
       renderRichnessRankingChart(
         mapState.currentRichnessRanking,
         regionCode,
         handleCountySelection,
-        taskGraphState.sortOrder);
+        taskChartState.sortOrder);
     });
 }
 
 // ====================================================================
-// Task Graph Removers
+// Apply Trend Filters Button Function
 // ====================================================================
 
-// IDs of visualizations for each task
-const GRAPH_CONTAINERS = [
-  "#richness-chart"
-];
+function setUpApplyTrendFiltersButton() {
+  d3.select("#applyTrendFiltersButton")
+    .on("click", function() {
+      // Retrieve inputs
+      const taxonId = d3.select("#speciesSelect").property("value");
+      const startYear = Number(d3.select("#startYear").property("value"));
+      const endYear = Number(d3.select("#endYear").property("value"));
 
-// Remove the graphs for each task
-function clearGraphs() {
-  GRAPH_CONTAINERS.forEach(selector => {
-    d3.select(selector)
-      .selectAll("*")
-      .remove();
-  });
+      // Validate inputs
+      if (!taxonId) {
+        alert("Please select a species.");
+        return;
+      }
+      if (
+        !Number.isInteger(startYear) ||
+        !Number.isInteger(endYear) ||
+        startYear < 2012 ||
+        endYear > 2025 ||
+        startYear > endYear
+      ) {
+        alert("Please enter a valid year range.");
+        return;
+      }
+
+      // Update mapState
+      mapState.currentTaxonId = taxonId;
+      mapState.currentStartYear = startYear;
+      mapState.currentEndYear = endYear;
+
+      // Initialize the line chart for Task 2
+      processSpecialTrendChart(
+        getRegionCode(), 
+        getRegionLevel(), 
+        mapState.currentTaxonId, 
+        mapState.currentStartYear, 
+        mapState.currentEndYear
+      );
+    });
 }
 
 // ====================================================================
 // Function Helpers
 // ====================================================================
 
+// Obtain the region code based on map state
+function getRegionCode() {
+  if (mapState.currentView !== "county") return null;
+
+  const stateId = mapState.currentStateId;
+  const abbreviation = STATE_ABBREVIATIONS[stateId];
+
+  if (mapState.currentCountyId) {
+    const countyId = String(mapState.currentCountyId).padStart(5, "0");
+    return `US-${abbreviation}-${countyId.slice(2)}`;
+  }
+
+  return `US-${abbreviation}`;
+}
+
+// Obtain the region level based on map state
+function getRegionLevel() {
+  if (mapState.currentView !== "county") return null;
+  return mapState.currentCountyId ? "county" : "state";
+}
+
+// Convert region code (e.g., "US-MA" or "US-MA-017") to its corresponding county name
 function getCountyNameFromRegionCode(regionCode) {
-  const match = regionCode.match(/^US-([A-Z]{2})-(\d{3})$/);
-  if (!match) return "Unknown County";
+  // Obtain the county id
+  const countyId = getCountyIdFromRegionCode(regionCode);
 
-  const [, abbreviation, countyCode] = match;
-  const stateId = Object.keys(STATE_ABBREVIATIONS)
-    .find(id => STATE_ABBREVIATIONS[id] === abbreviation);
-  if (!stateId) return "Unknown County";
-
-  const countyId = `${stateId}${countyCode}`;
+  // Look up the current counties within the selected state
+  // and check for a match in county id
   const county = mapState.currentCounties.find(d =>
     String(d.id).padStart(5, "0") === countyId
   );
+
+  // Return the name of the county, if found a match
   return county ? county.properties.name : "Unknown County";
+}
+
+// Add a dropdown menu which contains a full list of species common names
+function populateSpeciesDropdown() {
+  d3.select("#speciesSelect")
+    .selectAll("option.species-option")
+    .data([...TAXON_ID_TO_NAME_MAP.entries()])
+    .join("option")
+    .attr("class", "species-option")
+    .attr("value", d => d[0])
+    .text(d => d[1]);
+}
+
+// ====================================================================
+// Shared Things for Both Views
+// ====================================================================
+
+async function processSpecialTrendChart(regionCode, regionLevel, taxonId, startYear, endYear) {
+  const regionName = !regionLevel
+    ? "the US"
+    : regionLevel === "state"
+      ? STATE_ID_TO_NAME_MAP.get(mapState.currentStateId)
+      : getCountyNameFromRegionCode(regionCode);
+
+  // Display an empty chart if no selection on region level or taxon
+  if (!regionCode || !regionLevel || !taxonId) {
+    renderSpeciesTrendChart(null, regionName, startYear, endYear);
+    return;
+  }
+
+  const data = await loadSpeciesTrend(
+    regionCode,
+    regionLevel,
+    taxonId,
+    startYear,
+    endYear
+  );
+
+  console.log("Selected region:", regionCode);
+  console.log("Returned data:", data);
+  console.log("Number of rows:", data?.length);
+  console.table(data);
+
+  renderSpeciesTrendChart(data, regionName, startYear, endYear);
 }
 
 // ====================================================================
 // County View
 // ====================================================================
 
-// Filter counties which belongs to the selected state
-function getCountiesByState(stateId, allCounties) {
-  return {
-    type: "FeatureCollection",
-    // Each county ID is represented by a 5-digit code. We filter counties by 
-    // the first two digits of the code, which correspond to the ID of a state
-    features: allCounties.features.filter(d =>
-      String(d.id).padStart(5, "0").slice(0, 2) === stateId
-    )
-  };
-}
-
 // Update county colors based on selection
 function updateCountyColors() {
   svg.selectAll(".county")
     .attr("fill", d => {
-      return String(d.id) === String(mapState.selectedCountyId)
+      return String(d.id) === String(mapState.currentCountyId)
         ? MAP_COLORS.selected
         : MAP_COLORS.default;
     });
@@ -299,7 +311,7 @@ function selectCounty(countyId) {
     String(d.id) === String(countyId)
   );
   if (!selected) return;
-  mapState.selectedCountyId = countyId;
+  mapState.currentCountyId = countyId;
 
   // Update map highlighting on county selection
   updateCountyColors();
@@ -319,7 +331,7 @@ function selectCounty(countyId) {
   console.log(`Selected county: ${selected.properties.name}`);
 }
 
-// Select the county and update task graphs accordingly
+// Select the county and update task charts accordingly
 function handleCountySelection(countyId) {
   // Retrieve the state id from county id
   const stateId = countyId.slice(0, 2);
@@ -331,32 +343,22 @@ function handleCountySelection(countyId) {
   // Update map and sidebar
   selectCounty(countyId);
 
-  // Update bar chart highlighting
+  // Update the bar chart for Task 1
   renderRichnessRankingChart(
     mapState.currentRichnessRanking,
     regionCode,
     handleCountySelection,
-    taskGraphState.sortOrder
+    taskChartState.sortOrder
   );
-}
 
-// Initialize the county-searching mechanism in the sidebar
-function setUpSearch() {
-  d3.select("#county-search")
-  .on("input", function() {
-    // Obtain the user input on the county-search text field
-    const userInput = this.value.toLowerCase().trim();
-
-    // Filter and display the counties which contains the user input,
-    // and hide those which do not
-    d3.select("#county-list")
-      .selectAll("li")
-      .style("display", d =>
-        d.properties.name.toLowerCase().includes(userInput)
-          ? null
-          : "none"
-      );
-  });
+  // Update the line chart for Task 2 (county view)
+  processSpecialTrendChart(
+    getRegionCode(), 
+    getRegionLevel(), 
+    mapState.currentTaxonId, 
+    mapState.currentStartYear, 
+    mapState.currentEndYear
+  );
 }
 
 // Render the county sidebar
@@ -379,10 +381,10 @@ function renderCountyList(counties) {
     .attr("data-county-id", d => d.id)
     .text(d => d.properties.name)
     .classed("selected", d =>
-      String(d.id) === String(mapState.selectedCountyId)
+      String(d.id) === String(mapState.currentCountyId)
     )
     .on("click", (event, d) => {
-      // Select the county and update task graphs accordingly
+      // Select the county and update task charts accordingly
       handleCountySelection(d.id); // county id
     });
 }
@@ -414,7 +416,7 @@ function renderCountyMap(counties) {
     .style("cursor", "pointer")
     // Update color and display tooltip for the hovering county
     .on("mouseover", function(event, d) {
-      const isSelected = String(d.id) === String(mapState.selectedCountyId);
+      const isSelected = String(d.id) === String(mapState.currentCountyId);
       if (!isSelected) d3.select(this).attr("fill", MAP_COLORS.hover);
       showCountyTooltip(event, d.properties.name);
     })
@@ -424,7 +426,7 @@ function renderCountyMap(counties) {
     })
     // Update color and hide tooltip upon exiting from hovering the county
     .on("mouseout", function(event, d) {
-      const isSelected = String(d.id) === String(mapState.selectedCountyId);
+      const isSelected = String(d.id) === String(mapState.currentCountyId);
       d3.select(this).attr(
         "fill",
         isSelected ? MAP_COLORS.selected : MAP_COLORS.default
@@ -433,7 +435,7 @@ function renderCountyMap(counties) {
     })
     // Select the county upon clicking its corresponding polygon
     .on("click", function(event, d) {
-      // Select the county and update task graphs accordingly
+      // Select the county and update task charts accordingly
       handleCountySelection(d.id); // county id
     });
 
@@ -447,7 +449,7 @@ async function showCountyView(stateId) {
   // Update map state upon entering county view
   mapState.currentView = "county";
   mapState.currentStateId = stateId;
-  mapState.selectedCountyId = null;
+  mapState.currentCountyId = null;
 
   // Display the back button
   d3.select("#backButton")
@@ -463,7 +465,7 @@ async function showCountyView(stateId) {
 
   // Load county data and filter counties which belongs to the selected state
   const allCounties = await loadCountyData();
-  const counties = getCountiesByState(stateId, allCounties);
+  const counties = getCountiesByStateId(stateId, allCounties);
 
   // Update map state
   mapState.currentCounties = counties.features;
@@ -478,25 +480,33 @@ async function showCountyView(stateId) {
     2012, 
     2025,
     RICHNESS_RANKING_LIMIT,
-    taskGraphState.sortOrder
+    taskChartState.sortOrder
   );
   // Add county name to each of the element of the data returned
   mapState.currentRichnessRanking = mapState.currentRichnessRanking.map(d => ({
     ...d,
     county_name: getCountyNameFromRegionCode(d.region_code)
   }));
-  console.log("currentRichnessRanking: ", mapState.currentRichnessRanking)
 
   // Render map (county polygons) and the sidebar
   renderCountyMap(counties);
   renderCountyList(counties.features);
 
-  // Render the initial chart without a selected county
+  // Render the initial bar chart for Task 1 without a selected county
   renderRichnessRankingChart(
     mapState.currentRichnessRanking, 
     null, 
     handleCountySelection,
-    taskGraphState.sortOrder
+    taskChartState.sortOrder
+  );
+
+  // Update the line chart for Task 2 (state view)
+  processSpecialTrendChart(
+    getRegionCode(),
+    getRegionLevel(),
+    mapState.currentTaxonId,
+    mapState.currentStartYear,
+    mapState.currentEndYear
   );
 }
 
@@ -516,8 +526,11 @@ function renderStateMap(states) {
     .projection(projection);
 
   // The mapping of state ID (from TopoJSON) to the fullname of the corresponding state
-  const stateNames = new Map(
-    states.features.map(d => [d.id, d.properties.name])
+  STATE_ID_TO_NAME_MAP = new Map(
+    states.features.map(d => [
+      String(d.id).padStart(2, "0"),
+      d.properties.name
+    ])
   );
 
   // Reset the exisint content on the SVG before rendering the county view of the map
@@ -544,7 +557,7 @@ function renderStateMap(states) {
     // Select the state upon clicking its corresponding polygon,
     // and display the county view of the map (which is about the selected state)
     .on("click", function(event, d) {
-      console.log("Selected state:", stateNames.get(d.id));
+      console.log("Selected state:", STATE_ID_TO_NAME_MAP.get(d.id));
       showCountyView(
         String(d.id).padStart(2, "0")
       );
@@ -569,11 +582,11 @@ function renderStateMap(states) {
 }
 
 // Switch to state view
-async function showStateView() {
+export async function showStateView() {
   // Update map state upon entering the state view
   mapState.currentView = "state";
   mapState.currentStateId = null;
-  mapState.selectedCountyId = null;
+  mapState.currentCountyId = null;
   mapState.currentCounties = [];
 
   // Hide the back button
@@ -588,8 +601,8 @@ async function showStateView() {
   d3.select(".county-sidebar")
     .style("display", "none");
 
-  // Remove the graphs for each task
-  clearGraphs()
+  // Remove the charts for each task
+  clearCharts()
 
   // Hide the tooltip (which should only be used inside county view)
   hideCountyTooltip();
@@ -613,10 +626,16 @@ async function initializeMap() {
   setUpBackButton();
   // Initialize the sort button
   setUpSortButton();
+  // Initialize trend filters
+  populateSpeciesDropdown();
+  setUpApplyTrendFiltersButton();
 
   try {
     // Render the map with the state view
     await showStateView();
+
+    // Render an empty chart for Task 2 on default
+    renderSpeciesTrendChart();
   } catch (error) {
     console.error("Failed to initialize map:", error);
   }

@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+  <head>
+    <title>US Bird Map</title>
+    <link rel="stylesheet" href="us-map-styles.css" />
+  </head>
+  <body>
+    <div class="dashboard">
+      <div class="map-header">
+        <!-- Button that redirects the user back to the state view of the map -->
+        <button id="backButton">← Back to U.S. Map</button>
+
+        <!-- Button that globally controlls the sorting order of task charts -->
+        <button id="sortButton">Richness: High to Low ↓</button>
+      </div>
+
+      <div class="map-layout">
+        <!-- The U.S. map, with state and county views -->
+        <div id="map"></div>
+
+        <!-- The sidebar for inspecting a county within a selected state -->
+        <div class="county-sidebar">
+          <h3>Counties</h3>
+          <!-- County search bar -->
+          <input
+            type="text"
+            id="county-search"
+            placeholder="Search counties..."
+          />
+          <!-- The number of counties within the selected state -->
+          <div id="county-count"></div>
+          <!-- The complete list of counties within the selected state -->
+          <ul id="county-list"></ul>
+        </div>
+      </div>
+
+      <!-- Filters for Task 2 -->
+      <div class="trend-filters">
+        <!-- Species filter -->
+        <div class="filter-group">
+          <label for="speciesSelect">Species:</label>
+          <select id="speciesSelect">
+            <option value="">Select a species</option>
+          </select>
+        </div>
+        <!-- Start year filter -->
+        <div class="filter-group">
+          <label for="startYear">Start Year:</label>
+          <input
+            type="number"
+            id="startYear"
+            min="2012"
+            max="2025"
+            value="2012"
+          />
+        </div>
+        <!-- End year filter -->
+        <div class="filter-group">
+          <label for="endYear">End Year:</label>
+          <input
+            type="number"
+            id="endYear"
+            min="2012"
+            max="2025"
+            value="2025"
+          />
+        </div>
+        <!-- Apply button -->
+        <button id="applyTrendFiltersButton">Apply</button>
+      </div>
+
+      <div class="charts-container">
+        <!-- Bar chart for Task 1 -->
+        <div id="richness-chart"></div>
+
+        <!-- Line chart for Task 2 -->
+        <div id="obsrv-trend-chart"></div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+    <script type="module" src="us-map.js"></script>
+  </body>
+</html>

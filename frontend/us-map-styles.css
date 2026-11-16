@@ -7,7 +7,7 @@
 
 /* 
   backButton: Button that redirects the user back to the state view of the map 
-  sortButton: Button that globally sort task graphs accordingly
+  sortButton: Button that globally sort task charts accordingly
   */
 #backButton, #sortButton{
   display: none;
@@ -114,4 +114,18 @@
 #county-list li.selected {
   background: #bfdbfe;
   font-weight: bold;
+}
+
+/* Task charts container */
+.charts-container {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* Task charts */
+#richness-chart,
+#obsrv-trend-chart {
+  flex: 1;
+  min-width: 0;
 }
