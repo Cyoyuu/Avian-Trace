@@ -3,6 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  getCountyRichness,
+  getGeographicOptions,
   getRegionSummary,
   getSpeciesTrend,
   getRichnessRanking,
@@ -134,6 +136,13 @@ app.get("/api/taxa/names", async (req, res) => {
     res.status(500).json({ error: "Failed to retrieve taxon names" });
   }
 });
+
+app.get("/api/geography", endpoint(() => getGeographicOptions()));
+
+app.get("/api/county-richness", endpoint((req, filters) => {
+  if (!/^US-[A-Z]{2}$/.test(filters.stateCode)) throw new Error("Invalid state code");
+  return getCountyRichness(filters.stateCode, filters.startYear, filters.endYear);
+}));
 
 registerHolidayRoutes(app);
 

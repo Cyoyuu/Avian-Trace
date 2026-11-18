@@ -1,4 +1,4 @@
-import { STATE_ABBREVIATIONS } from "../us-map.js";
+import { STATE_ABBREVIATIONS } from "./geographic-codes.js";
 
 export function getCountyIdFromRegionCode(regionCode) {
   // Check for region code format

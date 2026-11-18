@@ -22,6 +22,7 @@ export const SHARED_FILTER_DEFINITIONS = freeze({
 });
 
 export const CHART_FILTER_DEFINITIONS = freeze({
+  t1Map: {},
   t1: {
     sortOrder: { label: "Sort", type: "enum", control: "select", default: "desc", options: sortOptions }
   },
@@ -48,6 +49,10 @@ export const CHART_FILTER_DEFINITIONS = freeze({
 });
 
 export const TASK_DEFINITIONS = freeze({
+  t1Map: {
+    label: "County Choropleth", sharedFilters: ["stateCode", "countyCode"],
+    filterRoles: { stateCode: "comparison", countyCode: "highlight" }
+  },
   t1: {
     label: "Geographic Species Richness", sharedFilters: ["stateCode", "countyCode"],
     filterRoles: { stateCode: "comparison", countyCode: "highlight" }

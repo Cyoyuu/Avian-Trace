@@ -22,9 +22,11 @@ const options = {
 // Initialize before subscriptions; initial rendering is explicit, not a change event.
 store.setShared({ stateCode: "US-MA", countyCode: "US-MA-017" });
 const taskSelect = document.querySelector("#task");
-const counts = Object.fromEntries(Object.keys(TASK_DEFINITIONS).map(id => [id, 0]));
+const taskIds = [...taskSelect.options].map(option => option.value);
+const counts = Object.fromEntries(taskIds.map(id => [id, 0]));
 const snapshots = new Map();
-Object.entries(TASK_DEFINITIONS).forEach(([id, task]) => {
+taskIds.forEach(id => {
+  const task = TASK_DEFINITIONS[id];
   const panel = document.createElement("div");
   const title = document.createElement("h3");
   const output = document.createElement("pre");
@@ -51,7 +53,7 @@ function subscribeTask(id) {
     renderSnapshots();
   });
 }
-const subscriptions = new Map(Object.keys(TASK_DEFINITIONS).map(id => [id, subscribeTask(id)]));
+const subscriptions = new Map(taskIds.map(id => [id, subscribeTask(id)]));
 let t3Subscribed = true;
 const toggleT3 = document.querySelector("#toggle-t3");
 function toggleSubscription() {

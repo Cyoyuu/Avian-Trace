@@ -30,3 +30,11 @@ export function loadSpeciesTrend(regionCode, regionLevel, taxonId, startYear, en
     endYear
   });
 }
+// Complete statewide data for the standalone county choropleth.
+export function loadCountyRichness(stateCode, startYear, endYear) {
+  return fetchAPI("/api/county-richness", { stateCode, startYear, endYear });
+}
+
+export function loadGeographicOptions() {
+  return fetchAPI("/api/geography");
+}

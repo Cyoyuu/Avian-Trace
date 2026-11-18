@@ -24,6 +24,7 @@ It does not import charts, fetch data, generate combinations, or modify existing
     endYear: 2025
   },
   charts: {
+    t1Map: {},
     t1: { sortOrder: "desc" },
     t2: { season: "all" },
     t3: {},
@@ -40,7 +41,8 @@ A county requires a matching state. Changing or clearing state clears the county
 
 | Task | Shared values | Local values |
 | --- | --- | --- |
-| T1 | State, county | Sorting |
+| T1 choropleth (`t1Map`) | State, county | None |
+| T1 bar chart (`t1`) | State, county | Sorting |
 | T2 | State, county, species, start/end year | Season |
 | T3 | State (county context), county, species, start/end year | None |
 | T4 | State, county | Locations per combination, sorting |
@@ -119,7 +121,7 @@ Future chart adapters will translate canonical values to their endpoints. In par
 ### Run and verify
 
 Run npm test for focused Node built-in tests (no database or server needed).
-Run npm start and visit http://127.0.0.1:3000/filter-demo.html.
+Run `npm start`, then open the filter demo listed in the centralized URL table below.
 
 1. Change species or years under T2: only T2/T3 counters advance.
 2. Change T2 season: only T2 advances.
@@ -130,3 +132,39 @@ Run npm start and visit http://127.0.0.1:3000/filter-demo.html.
 7. Change state: county clears and its options narrow to that state. Try a reversed year range: the store stays unchanged and the header displays an error.
 
 Switching the displayed task destroys the old header and creates the next one against the same store; state values persist and no filter-change notification is generated merely by switching controls. This is a notification demonstration, not a chart integration.
+
+## Standalone Visualization URLs
+
+Start the application from the repository root:
+
+~~~sh
+npm start
+~~~
+
+The Express server serves the following implemented pages at http://127.0.0.1:3000.
+Future visualization URLs will be added only when their pages are implemented.
+
+| Task | Visualization | URL | Implementation status |
+| --- | --- | --- | --- |
+| Infrastructure | Filter demo | [Filter demo](http://127.0.0.1:3000/filter-demo.html) | Implemented |
+| T1 | County Choropleth | [County Choropleth](http://127.0.0.1:3000/county-choropleth.html) | Implemented |
+| T1 | County Richness Bar Chart | — | Not implemented |
+| T2 | Observation Trends Line Chart | — | Not implemented as a standalone filter-connected page |
+| T2 | Seasonal Species Heatmap | — | Not implemented |
+| T3 | Holiday Comparison Line Chart | — | Not implemented as a standalone filter-connected page |
+| T4 | Location Combination Bar Chart | — | Not implemented |
+| T4 | UpSet Chart | — | Not implemented |
+
+### T1 — County Choropleth
+
+The standalone choropleth reuses the bundled counties-10m.json TopoJSON boundaries, existing state-FIPS lookup, getCountiesByStateId filtering, and the Albers fitting/county-selection pattern from the existing map. The lookup now lives in the side-effect-free geographic-codes.js helper; us-map.js retains its original export for compatibility. Existing map and chart examples remain usable.
+
+**Filters:** the reusable header renders in standalone mode with chartId: "t1Map". Its shared stateCode selects the statewide comparison, and countyCode selects a highlight. This view has no local sorting control. It displays the fixed complete-year period 2012–2025; year/species/season changes used by other charts do not notify it. The shared filter-store API and validation are unchanged.
+
+**Interactions:** selecting a state loads all its county boundaries and summary metrics. County clicks, Enter/Space on a focused polygon, and the county dropdown all write the same countyCode to the store. Selection adds an outline while preserving the richness fill, every other county, and the statewide scale. County-only changes never refetch or restrict statewide data. Clearing the county removes the highlight; changing state clears county through the existing store rule. Cached state results and request IDs prevent stale responses from replacing the current state. Hovering or focusing a county shows its name, distinct-species richness, and observation-record count. The visible selection summary repeats these metrics. A readable sequential blue legend is recomputed for each state's range; darker indicates greater richness, so colors are relative to the currently selected state.
+
+**Data calculations:** /api/county-richness accepts stateCode, startYear, and endYear. The page requests 2012–2025 inclusive. It aggregates species_region_year rows where region_level = 'county', state_code matches the selected state, observation_rows > 0, and the joined taxa.category = 'species'. Richness is COUNT(DISTINCT taxon_id) across the full period, not the sum of annual richness. Observation records are SUM(observation_rows) across the same rows: record counts, not summed reported bird counts, checklists, or unique observers. The existing build_summaries.py generates observation_rows using COUNT(*) of production observation rows and sums those counts into annual summaries; no additional checklist/group deduplication is applied here. The query left-joins metrics to the county reference table so a known county with no qualifying records returns zero. It has no top-N limit. /api/geography supplies existing state/county labels for the header.
+
+**Coverage and limitations:** the page displays every bundled polygon for the selected state. A polygon without a matching county reference/summary is gray and explicitly marked unavailable, not zero. County summaries without matching bundled boundaries are listed with both metrics in a coverage note rather than silently assigned to another polygon. These currently include Alaska codes 063/066/270, South Dakota code 113, and an unnamed Hawaii code 010; unavailable reference names fall back to the county code. Selecting one still shows its metrics, but cannot outline a missing boundary. Invalid/unidentified geographic reference codes are excluded from filter options. The included boundaries may differ from historical reporting geographies. Data is limited to species-category records and the displayed complete-year period; observation effort varies, so richness is recorded coverage rather than a population estimate. D3 and TopoJSON browser scripts follow the existing CDN convention and require network access. Statewide summary results are cached for the page session; reloading refreshes them.
+
+**Verification:** npm test includes synthetic DuckDB calculation tests covering cross-year distinct counting, taxonomy exclusions, geographic/year restrictions, zero-record counties, and missing geometry joins, alongside the existing filter tests. Geometry tests confirm all 14 Massachusetts counties and 254 Texas counties are retained. Browser checks cover selection through the header and keyboard, tooltips, color legend, state changes, clear selection, and stale-state behavior. Real-data API results are compared with independent database aggregations before committing.

@@ -1,0 +1,14 @@
+.county-richness-page { margin: 0; background: #f8fafc; color: #1f2937; font: 15px system-ui, sans-serif; }
+.county-richness-page main { max-width: 1100px; margin: 24px auto; padding: 0 20px; }
+.county-richness-page h1 { margin-bottom: 8px; font-size: 28px; }
+.county-richness-page h2 { margin-bottom: 8px; font-size: 20px; }
+.county-richness-page p { line-height: 1.5; }
+.county-richness-page__note { color: #4b5563; font-size: 14px; }
+#county-map { background: white; border: 1px solid #d1d5db; border-radius: 6px; }
+.county-choropleth__map { display: block; width: 100%; max-height: 580px; }
+.county-choropleth__legend { display: block; width: min(100%, 480px); font: 12px system-ui, sans-serif; }
+.county-choropleth__map .county { stroke: white; stroke-width: 1; vector-effect: non-scaling-stroke; cursor: pointer; }
+.county-choropleth__map .county:hover { stroke: #111827; stroke-width: 2; }
+.county-choropleth__map .county.is-selected { stroke: #111827; stroke-width: 3; }
+.county-choropleth__map .county:focus-visible { outline: none; stroke: #c2410c; stroke-width: 4; }
+.county-choropleth__tooltip { position: fixed; z-index: 10; box-sizing: border-box; width: max-content; max-width: min(280px, calc(100vw - 32px)); padding: 10px 12px; border-radius: 5px; background: #111827; color: white; font: 14px/1.5 system-ui, sans-serif; pointer-events: none; }

@@ -1,3 +1,4 @@
+import { COUNTY_RICHNESS_SQL } from "./county-richness-query.js";
 
 import { query } from "./database.js";
 
@@ -131,5 +132,22 @@ export async function getTaxonNameMap() {
     FROM taxa
     WHERE category = 'species'
     ORDER BY common_name;
+  `);
+}
+/** All reference counties in a state, including zero-record counties; no ranking limit. */
+export function getCountyRichness(stateCode, startYear, endYear) {
+  return query(COUNTY_RICHNESS_SQL, [stateCode, startYear, endYear]);
+}
+
+/** Geographic labels and codes for reusable filter option lists. */
+export function getGeographicOptions() {
+  return query(`
+    SELECT 'state' AS region_level, state_code AS region_code,
+      state_name AS region_name, state_code
+    FROM states WHERE regexp_matches(state_code, '^US-[A-Z]{2}$')
+    UNION ALL
+    SELECT 'county', county_code, COALESCE(county_name, county_code), state_code
+    FROM counties WHERE regexp_matches(county_code, '^US-[A-Z]{2}-[0-9]{3}$')
+    ORDER BY region_level, region_name, region_code
   `);
 }
