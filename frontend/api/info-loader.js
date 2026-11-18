@@ -39,3 +39,8 @@ export function loadCountyRichness(stateCode, startYear, endYear) {
 export function loadGeographicOptions() {
   return fetchAPI("/api/geography");
 }
+
+// Top species across all months; independent of selected taxon and the trends season.
+export function loadSpeciesHeatmap(regionCode, regionLevel, startYear, endYear, speciesCount) {
+  return fetchAPI("/api/species-heatmap", { regionCode, regionLevel, startYear, endYear, speciesCount });
+}

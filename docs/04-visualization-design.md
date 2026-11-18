@@ -27,6 +27,7 @@ It does not import charts, fetch data, generate combinations, or modify existing
     t1Map: {},
     t1: { sortOrder: "desc" },
     t2: { season: "all" },
+    t2Heatmap: { speciesCount: 15, sortOrder: "total" },
     t3: {},
     t4: { numberOfLocations: 3, sortOrder: "desc" }
   }
@@ -43,7 +44,8 @@ A county requires a matching state. Changing or clearing state clears the county
 | --- | --- | --- |
 | T1 choropleth (`t1Map`) | State, county | None |
 | T1 bar chart (`t1`) | State, county | Sorting |
-| T2 | State, county, species, start/end year | Season |
+| T2 trends (`t2`) | State, county, species, start/end year | Season |
+| T2 heatmap (`t2Heatmap`) | State, county, start/end year | Species count, sorting |
 | T3 | State (county context), county, species, start/end year | None |
 | T4 | State, county | Locations per combination, sorting |
 
@@ -150,7 +152,7 @@ Future visualization URLs will be added only when their pages are implemented.
 | T1 | County Choropleth | [County Choropleth](http://127.0.0.1:3000/county-choropleth.html) | Implemented |
 | T1 | County Richness Bar Chart | [County Richness Bar Chart](http://127.0.0.1:3000/county-richness-bar.html) | Implemented |
 | T2 | Observation Trends Line Chart | [Observation Trends](http://127.0.0.1:3000/observation-trends.html) | Implemented |
-| T2 | Seasonal Species Heatmap | — | Not implemented |
+| T2 | Seasonal Species Heatmap | [Seasonal Species Heatmap](http://127.0.0.1:3000/seasonal-species-heatmap.html) | Implemented |
 | T3 | Holiday Comparison Line Chart | — | Not implemented as a standalone filter-connected page |
 | T4 | Location Combination Bar Chart | — | Not implemented |
 | T4 | UpSet Chart | — | Not implemented |
@@ -195,4 +197,17 @@ The standalone page uses the existing t2 filter definition, store, header, taxon
 
 **Interaction and rendering:** relevant filter changes request an updated yearly series and clear the previous chart while loading. Request IDs prevent older responses from replacing newer selections. The X-axis shows integer calendar years; the Y-axis shows observation-record counts starting at zero. A single-year range produces a centered point, and an all-zero range remains a valid baseline series. Hovering or focusing yearly points exposes year and observation count; Escape dismisses the tooltip. The chart recalculates on resize and uses horizontal scrolling on narrow screens to preserve year/axis readability. Invalid year inputs are handled by the existing header/store validation and leave the last committed filters unchanged.
 
-**Verification and limitations:** focused in-memory DuckDB tests cover all five season totals, same-calendar-year winter boundaries, state/county and taxon isolation, year restrictions, processed zeros, unavailable/partially processed years, and invalid requests. Series tests cover missing years, explicit zeros, invalid/duplicate values, and a one-year range. Existing filter and T1 tests remain part of npm test. Real-data checks compare every season with independent monthly aggregations and All with the legacy annual endpoint; browser checks cover each filter, tooltips, zero/single-year ranges, invalid ranges, rapid changes, and narrow/desktop rendering. One species is displayed at a time. Available years remain 2012–2025; counts reflect recording activity and current taxonomy. D3 follows the existing CDN convention and requires network access. No heatmap or dashboard is implemented in this step.
+**Verification and limitations:** focused in-memory DuckDB tests cover all five season totals, same-calendar-year winter boundaries, state/county and taxon isolation, year restrictions, processed zeros, unavailable/partially processed years, and invalid requests. Series tests cover missing years, explicit zeros, invalid/duplicate values, and a one-year range. Existing filter and T1 tests remain part of npm test. Real-data checks compare every season with independent monthly aggregations and All with the legacy annual endpoint; browser checks cover each filter, tooltips, zero/single-year ranges, invalid ranges, rapid changes, and narrow/desktop rendering. One species is displayed at a time. Available years remain 2012–2025; counts reflect recording activity and current taxonomy. D3 follows the existing CDN convention and requires network access. This view remains separate from the heatmap; no dashboard is implemented.
+
+
+### T2 — Seasonal Species Heatmap
+
+The standalone heatmap reuses species_region_month, the geography API, fetchAPI/load helpers, the reusable standalone header, and the existing filter-store API. A new t2Heatmap definition registers only shared stateCode, countyCode, startYear, and endYear. Local speciesCount accepts 10/15/20 (default 15), and local sortOrder accepts total (default, descending total observations) or alpha. Shared taxonId and charts.t2.season are neither rendered nor subscribed to. Existing visualization definitions, stores, and backend route behavior are retained; the default-state test includes the additional view namespace.
+
+**Aggregation and ranking:** /api/species-heatmap accepts regionCode, regionLevel, startYear, endYear, and speciesCount. It first verifies that every requested year has a summary_completed_years marker. It then filters species_region_month by area, inclusive years, months 1–12, and taxa.category = 'species'. SUM(observation_rows) across all selected years and twelve months determines the top species, with name/taxon-code tie breaks. Only species with a positive total qualify, so areas with fewer than the requested count show the available species. The query selects this cohort before cross-joining all twelve month columns and summing each selected species/month across the chosen years. Absent matching rows in a processed range return an explicit zero. Values are observation totals, not averages, distinct species counts, individual birds, or checklist counts.
+
+**Display and interactions:** rows are bird species and columns are January–December. Sequential blue fill represents monthly observation totals aggregated across the selected years; darker means more records. The labeled color legend ranges from zero to the largest visible monthly total and is recomputed for each filtered cohort. Alphabetical sorting rearranges the same selected top-species cohort locally without refetching or changing membership. Changing species count, area, county, or years requests a new cohort and monthly totals. County clearing returns to the selected state; state changes clear county through existing validation. Request IDs prevent stale results from replacing newer selections. Hovering or focusing a cell displays species name, full month name, and observation total; Escape dismisses the tooltip. Full species/month labels are retained and narrow screens scroll horizontally.
+
+**Missing data:** completed months with no matching observations are light-blue zeros. If any selected year lacks a completion marker, no partial totals or incomplete ranking are shown; a coverage message lists unavailable years. The frontend also keeps any unexpected missing/null cell unavailable (gray), rather than converting it into zero. An empty completed range produces a no-records message instead of inventing zero-valued species. Processing completeness does not establish sampling effort or ecological absence.
+
+**Verification and limitations:** focused tests cover cross-year monthly sums, ranking before alphabetical display, 10/15/20 species, state/county isolation, taxonomy/year/month exclusions, explicit zero months, missing years, and independent filter notifications. Real-data checks compare top species, totals, and monthly cells with independent database queries. Browser checks cover all controls, monthly labels, cell tooltips, sequential colors/legend, rapid filter changes, narrow screens, and existing trends behavior. The available range is 2012–2025, excluding partial 2026. Counts reflect observation activity and current taxonomy; the heatmap does not adjust for reporting effort or the different number of days per month. D3 uses the existing CDN convention. No dashboard is implemented.

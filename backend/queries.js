@@ -1,3 +1,4 @@
+import { querySpeciesHeatmap } from "./species-heatmap-query.js";
 import { SEASONAL_SPECIES_TREND_SQL, getTrendMonths, validateSeasonalTrend } from "./species-trend-query.js";
 import { COUNTY_RICHNESS_SQL } from "./county-richness-query.js";
 
@@ -157,4 +158,9 @@ export function getGeographicOptions() {
     FROM counties WHERE regexp_matches(county_code, '^US-[A-Z]{2}-[0-9]{3}$')
     ORDER BY region_level, region_name, region_code
   `);
+}
+
+/** Top species and twelve monthly record totals across the requested complete years. */
+export function getSpeciesHeatmap(regionCode, regionLevel, startYear, endYear, speciesCount) {
+  return querySpeciesHeatmap(query, regionCode, regionLevel, startYear, endYear, speciesCount);
 }

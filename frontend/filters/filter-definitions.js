@@ -38,6 +38,16 @@ export const CHART_FILTER_DEFINITIONS = freeze({
       ]
     }
   },
+  t2Heatmap: {
+    speciesCount: {
+      label: "Species count", type: "enum", control: "select", default: 15,
+      options: [10, 15, 20].map(value => ({ value, label: String(value) }))
+    },
+    sortOrder: {
+      label: "Sort", type: "enum", control: "select", default: "total",
+      options: [{ value: "total", label: "Total observations" }, { value: "alpha", label: "Alphabetical" }]
+    }
+  },
   t3: {},
   t4: {
     numberOfLocations: {
@@ -60,6 +70,10 @@ export const TASK_DEFINITIONS = freeze({
   t2: {
     label: "Long-Term Observation Trends",
     sharedFilters: ["stateCode", "countyCode", "taxonId", "startYear", "endYear"]
+  },
+  t2Heatmap: {
+    label: "Seasonal Species Heatmap",
+    sharedFilters: ["stateCode", "countyCode", "startYear", "endYear"]
   },
   t3: {
     label: "Holiday Observation Patterns",
