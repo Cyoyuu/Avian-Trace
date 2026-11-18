@@ -105,7 +105,8 @@ app.get("/api/region-summary", endpoint(
 app.get("/api/species-trend", endpoint(
   (req, f) => {
     return getSpeciesTrend(
-      f.regionCode, f.regionLevel, f.taxonId, f.startYear, f.endYear
+      f.regionCode, f.regionLevel, f.taxonId, f.startYear, f.endYear,
+      req.query.season === undefined ? undefined : String(req.query.season)
     );
   }
 ));

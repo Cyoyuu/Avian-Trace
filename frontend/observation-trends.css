@@ -1,0 +1,14 @@
+.observation-trends-page { margin: 0; background: #f8fafc; color: #1f2937; font: 15px system-ui, sans-serif; }
+.observation-trends-page main { max-width: 1100px; margin: 24px auto; padding: 0 20px; }
+.observation-trends-page h1 { margin-bottom: 8px; font-size: 28px; }
+.observation-trends-page h2 { margin-bottom: 8px; font-size: 20px; }
+.observation-trends-page p { line-height: 1.5; }
+.observation-trends-page__note { color: #4b5563; font-size: 14px; }
+#trend-chart { overflow-x: auto; border: 1px solid #d1d5db; border-radius: 6px; background: white; }
+#trend-chart:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.observation-trends__plot { display: block; max-width: none; font: 13px system-ui, sans-serif; }
+.observation-trends__axis text { font: 12px system-ui, sans-serif; }
+.observation-trends__grid line { stroke: #e5e7eb; }
+.observation-trends__point:focus { outline: none; }
+.observation-trends__point:focus-visible .observation-trends__dot { stroke: #c2410c; stroke-width: 3; }
+.observation-trends__tooltip { position: fixed; z-index: 10; box-sizing: border-box; width: max-content; max-width: min(280px, calc(100vw - 32px)); padding: 10px 12px; border-radius: 5px; background: #111827; color: white; font: 14px/1.5 system-ui, sans-serif; pointer-events: none; }

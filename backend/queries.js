@@ -1,3 +1,4 @@
+import { SEASONAL_SPECIES_TREND_SQL, getTrendMonths, validateSeasonalTrend } from "./species-trend-query.js";
 import { COUNTY_RICHNESS_SQL } from "./county-richness-query.js";
 
 import { query } from "./database.js";
@@ -37,10 +38,16 @@ export function getRegionSummary(regionCode, regionLevel, startYear, endYear) {
  * @param {string} taxonId - Bird taxonomic identifier (Avibase ID).
  * @param {number} startYear - Starting year (inclusive).
  * @param {number} endYear - Ending year (inclusive).
- * @returns {Promise<object>} Query result containing year and
- *   observation_records for each available year.
+ * @param {string} [season] - Optional T2 season with complete yearly values and availability.
+ * @returns {Promise<object>} Query result containing year and observation_records.
  */
-export function getSpeciesTrend(regionCode, regionLevel, taxonId, startYear, endYear) {
+export function getSpeciesTrend(regionCode, regionLevel, taxonId, startYear, endYear, season) {
+  if (season !== undefined) {
+    const months = getTrendMonths(season);
+    validateSeasonalTrend(regionCode, regionLevel, startYear, endYear);
+    return query(SEASONAL_SPECIES_TREND_SQL, [regionCode, regionLevel, taxonId, startYear, endYear, months.join(",")]);
+  }
+  // Preserve the annual endpoint contract for existing callers that omit season.
   return query(`
     SELECT
       s.year,

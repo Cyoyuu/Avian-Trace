@@ -21,13 +21,14 @@ export function loadRichnessRanking(regionLevel, stateCode, startYear, endYear,
 // Load the annual observation records for a particular bird taxon 
 // within a selected state or county from the database
 // Used to visualize Task 2: Long-Term Observation Trends
-export function loadSpeciesTrend(regionCode, regionLevel, taxonId, startYear, endYear) {
+export function loadSpeciesTrend(regionCode, regionLevel, taxonId, startYear, endYear, season) {
   return fetchAPI("/api/species-trend", {
     regionCode, 
     regionLevel, 
     taxonId, 
     startYear, 
-    endYear
+    endYear,
+    season
   });
 }
 // Complete statewide data for the standalone county choropleth.

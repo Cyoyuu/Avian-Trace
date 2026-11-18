@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Avian Trace — Long-Term Observation Trends</title>
+    <link rel="stylesheet" href="components/filter-header.css" />
+    <link rel="stylesheet" href="observation-trends.css" />
+  </head>
+  <body class="observation-trends-page">
+    <main>
+      <h1>Long-Term Observation Trends</h1>
+      <p>Explore yearly observation records for a single species by state or county, year range, and season.</p>
+      <div id="filters" aria-label="Observation trend filters"></div>
+      <p id="trend-status" role="status" aria-live="polite">Loading geographic and species options…</p>
+      <h2 id="trend-title">Select an area and species</h2>
+      <p id="trend-context"></p>
+      <div id="trend-chart" aria-busy="true" tabindex="0" role="region" aria-label="Observation trends. Scroll horizontally on narrow screens to see every year."></div>
+      <p id="coverage-note" aria-live="polite"></p>
+      <p class="observation-trends-page__note">Hover or focus a yearly point to see its observation count. A processed year with no matching records is shown as zero; an unavailable summary produces a line gap. Zero recorded observations does not establish that a species was absent.</p>
+      <p class="observation-trends-page__note">Counts are species-category observation records, not individual birds, unique checklists, or population estimates. Winter selects January, February, and December within each labeled year. The available complete-year range is 2012–2025; partial-year 2026 is excluded.</p>
+    </main>
+    <div id="trend-tooltip" class="observation-trends__tooltip" role="tooltip" hidden></div>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script type="module" src="observation-trends.js"></script>
+  </body>
+</html>
