@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Avian Trace — County Richness Bar Chart</title>
+    <link rel="stylesheet" href="components/filter-header.css" />
+    <link rel="stylesheet" href="county-richness-bar.css" />
+  </head>
+  <body class="county-bars-page">
+    <main>
+      <h1>County Richness Bar Chart</h1>
+      <p>Compare distinct recorded species across every county in a state, 2012–2025.</p>
+      <div id="filters" aria-label="County richness filters"></div>
+      <p id="chart-status" role="status" aria-live="polite">Loading geographic options…</p>
+      <h2 id="chart-title">Select a state</h2>
+      <p id="scroll-hint">County labels are shown in full. Scroll the chart horizontally when needed; the Y-axis stays visible.</p>
+      <div id="richness-chart" aria-busy="true"></div>
+      <p class="county-bars-page__x-label">County</p>
+      <p id="county-selection" aria-live="polite">No county highlighted.</p>
+      <p class="county-bars-page__note">Choose a county in the header, click its bar, or focus its column and press Enter or Space to highlight it. All counties remain in the statewide comparison. Selected counties are brought into view. Choose “Select county” to clear the highlight.</p>
+      <p class="county-bars-page__note">Richness counts each species once across 2012–2025. Observation counts are species-category observation records, not individual birds, checklists, or population estimates. All counties returned by the data endpoint are included, whether or not map boundaries are available.</p>
+    </main>
+    <div id="bar-tooltip" class="county-bars__tooltip" role="tooltip" hidden></div>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script type="module" src="county-richness-bar.js"></script>
+  </body>
+</html>
