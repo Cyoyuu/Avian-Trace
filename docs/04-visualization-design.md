@@ -1,0 +1,132 @@
+# Visualization Design
+
+## Reusable filtering
+
+The filter infrastructure uses browser ES modules and has no added dependencies.
+It does not import charts, fetch data, generate combinations, or modify existing pages or routes.
+
+### Modules
+
+- frontend/filters/filter-definitions.js: immutable shared/local definitions, defaults, options, month sets, task applicability, and T1/T3 selection roles.
+- frontend/filters/filter-store.js: store factory, typed validation, snapshots, atomic patches, and relevant-change subscriptions.
+- frontend/components/filter-header.js and .css: reusable labeled controls bound to an injected store.
+- frontend/filter-demo.html and .js: standalone task selector with snapshots and notification counters. One store is used throughout this small demonstration; it renders no charts or combined dashboard.
+
+### State contract
+
+~~~js
+{
+  shared: {
+    stateCode: null,
+    countyCode: null,
+    taxonId: null,
+    startYear: 2012,
+    endYear: 2025
+  },
+  charts: {
+    t1: { sortOrder: "desc" },
+    t2: { season: "all" },
+    t3: {},
+    t4: { numberOfLocations: 3, sortOrder: "desc" }
+  }
+}
+~~~
+
+State and county codes use eBird region codes, such as US-MA and US-MA-017.
+Species selections use taxon IDs, not display names. Null means unset, not a query for all species or a fabricated county.
+Years and location counts are numbers; the store rejects numeric strings.
+State/county validation checks code structure and their matching state prefix; existence is the caller's option/data responsibility.
+A county requires a matching state. Changing or clearing state clears the county in the same transaction unless the patch explicitly provides a compatible county.
+
+| Task | Shared values | Local values |
+| --- | --- | --- |
+| T1 | State, county | Sorting |
+| T2 | State, county, species, start/end year | Season |
+| T3 | State (county context), county, species, start/end year | None |
+| T4 | State, county | Locations per combination, sorting |
+
+T1 uses stateCode as the statewide comparison context and countyCode solely to highlight an entry. A county selection does not replace or clear stateCode. Its future data loader must keep using the state for the comparison query.
+T3 uses state to narrow county choices; an unset county is an incomplete selection for the planned county comparison.
+
+Sorting values are alpha (alphabetical), asc (ascending), and desc (descending), separately stored for T1 and T4.
+Season belongs only to T2: all (Jan–Dec), spring (Mar–May), summer (Jun–Aug), fall (Sep–Nov), winter (Dec–Feb). Definitions expose numeric month sets. These describe calendar months; cross-year winter aggregation belongs to future chart/data work.
+
+T4 numberOfLocations defaults to 3 and accepts exactly the numbers 3, 4, or 5. It means exactly that many locations per combination within the selected county. A combination's richness is the count of distinct species in the union of its locations. The store imposes no candidate-count limit and contains no combination-generation algorithm.
+
+### Standalone use
+
+~~~js
+import { createFilterStore } from "./filters/filter-store.js";
+import { createFilterHeader } from "./components/filter-header.js";
+
+const store = createFilterStore();
+const header = createFilterHeader({
+  container: "#filters",
+  store,
+  chartId: "t2", // scope defaults to "all": relevant shared + local controls
+  options: {
+    stateCode: [{ value: "US-MA", label: "Massachusetts" }],
+    countyCode: [{ value: "US-MA-017", label: "Middlesex County" }],
+    taxonId: [{ value: "avibase-4E74AE22", label: "Northern Cardinal" }]
+  }
+});
+
+const unsubscribe = store.subscribe({ chartId: "t2" }, ({ filters, changedKeys }) => {
+  console.log("T2 update", filters, changedKeys);
+});
+store.setShared({ stateCode: "US-MA", countyCode: "US-MA-017" });
+store.setShared({ startYear: 2015, endYear: 2020 });
+store.setChart("t2", { season: "spring" });
+
+// Read initial values explicitly: subscribe does not invoke an initial callback.
+console.log(store.getFilters("t2"));
+// On teardown:
+unsubscribe();
+header.destroy();
+~~~
+
+Include components/filter-header.css in the page. Headers require an existing container.
+The header uses inline labels and 34 px controls in a horizontal toolbar targeting 52 px tall. Narrow containers scroll horizontally to keep controls on one row; visible validation errors can increase its height.
+Multiple instances have distinct label/control IDs. Controls commit on change; invalid input displays an inline error and restores the committed value. County controls are disabled until a state is chosen and list only counties from that state.
+Use header.setOptions({ taxonId: [...] }) to supply asynchronously loaded labels/options. Values already in the store remain visible while labels are loading.
+Option loading remains outside the header; existing taxon helpers can supply species labels. Do not import us-map.js into this infrastructure: it initializes a visualization.
+
+### Future dashboard wiring (example only)
+
+~~~js
+const store = createFilterStore(); // one shared owner, passed to every consumer
+const sharedHeader = createFilterHeader({ container: "#shared", store, scope: "shared", options });
+const t2Controls = createFilterHeader({ container: "#t2-controls", store, chartId: "t2", scope: "chart" });
+const t4Controls = createFilterHeader({ container: "#t4-controls", store, chartId: "t4", scope: "chart" });
+~~~
+
+A shared header without chartId displays all shared definitions. With chartId it displays only that task's relevant shared definitions. scope: "chart" renders only that task's local controls; T3 currently has none.
+Each visualization subscribes by chartId to the same store. Do not create a second shared store per visualization or synchronize independent stores manually. Independent standalone pages can each create their own store.
+
+### Subscription and update guarantees
+
+- setShared(patch) and setChart(chartId, patch) validate the entire patch before committing. Unknown filters/tasks and invalid values throw without state changes or notifications.
+- Each affected subscriber receives one callback per patch, even when several relevant values change. Unchanged values and unrelated filters produce no callback.
+- Task callbacks receive a flat filters snapshot containing relevant shared values and that task's local values. changedKeys contains only relevant scoped paths, e.g. shared.taxonId or charts.t2.season.
+- getState(), getFilters(chartId), and callback data are immutable copies. Read them rather than mutating them; all changes go through setters.
+- subscribe({ keys: ["shared.taxonId"] }, callback) supports narrower subscriptions, including header bindings. Its filters snapshot is keyed by the supplied scoped paths. Choose keys or chartId, not both.
+- The returned unsubscribe function is idempotent. header.destroy() removes its subscription, listeners, and DOM; it does not unsubscribe chart consumers.
+- Notifications are synchronous. Nested updates are queued so all subscribers receive transaction snapshots in order. Listener failures do not prevent delivery to others; setters throw an AggregateError after delivery, with state already committed. Keep data-loading errors inside the visualization's own handler.
+
+The default year bounds are 2012–2025, matching existing complete-year controls. To use another known available range, createFilterStore({ yearBounds: { min: 2012, max: 2026 } }); both initial years and number controls follow those bounds. This does not change backend capabilities.
+Future chart adapters will translate canonical values to their endpoints. In particular, the current holiday API takes common names and different parameter names and does not implement these year/season controls; existing routes are intentionally unchanged.
+
+### Run and verify
+
+Run npm test for focused Node built-in tests (no database or server needed).
+Run npm start and visit http://127.0.0.1:3000/filter-demo.html.
+
+1. Change species or years under T2: only T2/T3 counters advance.
+2. Change T2 season: only T2 advances.
+3. Switch to T1 and change county: state stays selected; all tasks receive the county change.
+4. Change T1 sorting: only T1 advances.
+5. Switch to T4: choose 3, 4, or 5 and any sorting option; only T4 advances.
+6. Unsubscribe T3, then change shared species/years: T3's counter stays fixed. Resubscribe to receive future changes.
+7. Change state: county clears and its options narrow to that state. Try a reversed year range: the store stays unchanged and the header displays an error.
+
+Switching the displayed task destroys the old header and creates the next one against the same store; state values persist and no filter-change notification is generated merely by switching controls. This is a notification demonstration, not a chart integration.

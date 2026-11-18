@@ -1,0 +1,50 @@
+.filter-header {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  min-height: 52px;
+  padding: 8px;
+  overflow-x: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #374151;
+}
+.filter-header__group {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+.filter-header label {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.filter-header input, .filter-header select {
+  box-sizing: border-box;
+  height: 34px;
+  padding: 4px 6px;
+  border: 1px solid #9ca3af;
+  border-radius: 4px;
+  background: white;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.filter-header input { width: 76px; }
+.filter-header select { width: 136px; }
+.filter-header select[data-filter-path="shared.taxonId"] { width: 152px; }
+.filter-header select[data-filter-path="charts.t2.season"] { width: 140px; }
+.filter-header :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.filter-header [aria-invalid="true"] { border-color: #b91c1c; }
+.filter-header__error {
+  flex: 0 0 auto;
+  max-width: 260px;
+  margin: 0;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.3;
+}

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Avian Trace — Filter Demo</title>
+    <link rel="stylesheet" href="components/filter-header.css" />
+    <style>
+      body { margin: 24px auto; padding: 0 20px; max-width: 1100px; font-family: system-ui, sans-serif; color: #1f2937; }
+      h1 { font-size: 26px; }
+      h2 { font-size: 19px; }
+      section { margin: 24px 0; }
+      button, #task { padding: 8px; font: inherit; }
+      .demo-output { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+      pre { padding: 12px; background: #f1f5f9; overflow: auto; font-size: 13px; }
+      #notifications { max-height: 220px; overflow: auto; padding-left: 24px; }
+      #notifications li { margin: 8px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>Avian Trace: reusable filter demo</h1>
+    <p>Sample options only. Changes update filter snapshots and notification counts; no chart or database queries run.</p>
+    <label for="task">Standalone task:</label>
+    <select id="task">
+      <option value="t1">T1 — Geographic Species Richness</option>
+      <option value="t2" selected>T2 — Long-Term Observation Trends</option>
+      <option value="t3">T3 — Holiday Observation Patterns</option>
+      <option value="t4">T4 — Multi-Location Species Coverage</option>
+    </select>
+    <section aria-labelledby="header-title">
+      <h2 id="header-title">Standalone header: shared and chart controls</h2>
+      <div id="filter-controls"></div>
+      <p id="task-note"></p>
+    </section>
+    <section aria-labelledby="notifications-title">
+      <h2 id="notifications-title">Relevant change notifications</h2>
+      <p>All four task subscribers use the same store. Changing the displayed task only changes which controls are rendered.</p>
+      <button id="toggle-t3" type="button" aria-pressed="false">Unsubscribe T3</button>
+      <p id="counts" aria-live="polite"></p>
+      <ol id="notifications" aria-label="Recent filter changes"></ol>
+    </section>
+    <section aria-labelledby="snapshots-title">
+      <h2 id="snapshots-title">Current task snapshots</h2>
+      <div id="snapshots" class="demo-output"></div>
+    </section>
+    <script type="module" src="filter-demo.js"></script>
+  </body>
+</html>
