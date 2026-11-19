@@ -6,7 +6,7 @@ const HTML = `
 <p id="holiday-status" role="status" aria-live="polite">Loading county and species options…</p>
       <h2 id="holiday-title">Select a county and species</h2>
       <p id="holiday-context"></p>
-      <div id="holiday-chart" aria-busy="true" tabindex="0" role="region" aria-label="Holiday and non-holiday observation trends. Scroll horizontally on narrow screens to see every year."></div>
+      <div id="holiday-chart" data-plot aria-busy="true" tabindex="0" role="region" aria-label="Holiday and non-holiday observation trends. Scroll horizontally on narrow screens to see every year."></div>
       <p id="coverage-note" aria-live="polite"></p>
       <p class="holiday-patterns-page__note">Hover or focus either yearly point to see both daily averages, observation totals, and calendar-day counts. Every day belongs to exactly one group, including days with zero recorded observations.</p>
       <p class="holiday-patterns-page__note">Holidays are distinct dates marked as actual holidays in the existing calendar. Observed-only substitute dates belong to the non-holiday group. Leap years have 366 days; other years have 365.</p>
@@ -14,8 +14,8 @@ const HTML = `
 <div id="holiday-tooltip" class="holiday-patterns__tooltip" role="tooltip" hidden></div>
 `;
 
-export function mountHolidayObservationPatterns({ container: host, store, data, geography, taxa, d3 = globalThis.d3, sizing = {} }) {
-  const frame = createVisualizationFrame({ container: host, html: HTML, className: "holiday-patterns-page" });
+export function mountHolidayObservationPatterns({ container: host, presentation = "standalone", store, data, geography, taxa, d3 = globalThis.d3, sizing = {} }) {
+  const frame = createVisualizationFrame({ container: host, html: HTML, presentation, className: "holiday-patterns-page" });
   const { elements } = frame;
   let disposed = false;
   const { loadHolidayObservations } = data;
@@ -29,7 +29,7 @@ const container = elements["holiday-chart"];
 
   async function initialize() {
     try {
-      chart = createHolidayObservationsChart({ d3, sizing, container, tooltip: elements["holiday-tooltip"] });
+      chart = createHolidayObservationsChart({ d3, sizing, presentation, container, tooltip: elements["holiday-tooltip"] });
 
       async function update({ filters }) {
         if (disposed) return;
@@ -79,7 +79,7 @@ const container = elements["holiday-chart"];
   }
 
   const ready = initialize();
-  return { root: frame.root, ready, destroy() {
+  return { root: frame.root, controls: frame.controls, ready, destroy() {
     if (disposed) return; disposed = true;
     requestId++;
     unsubscribe?.();

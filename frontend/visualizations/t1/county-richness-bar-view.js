@@ -6,7 +6,7 @@ const HTML = `
 <p id="chart-status" role="status" aria-live="polite">Loading geographic options…</p>
       <h2 id="chart-title">Select a state</h2>
       <p id="scroll-hint">County labels are shown in full. Scroll the chart horizontally when needed; the Y-axis stays visible.</p>
-      <div id="richness-chart" aria-busy="true"></div>
+      <div id="richness-chart" data-plot aria-busy="true"></div>
       <p class="county-bars-page__x-label">County</p>
       <p id="county-selection" aria-live="polite">No county highlighted.</p>
       <p class="county-bars-page__note">Choose a county in the header, click its bar, or focus its column and press Enter or Space to highlight it. All counties remain in the statewide comparison. Selected counties are brought into view. Choose “Select county” to clear the highlight.</p>
@@ -14,8 +14,8 @@ const HTML = `
 <div id="bar-tooltip" class="county-bars__tooltip" role="tooltip" hidden></div>
 `;
 
-export function mountCountyRichnessBar({ container: host, store, data, geography, taxa, d3 = globalThis.d3, sizing = {} }) {
-  const frame = createVisualizationFrame({ container: host, html: HTML, className: "county-bars-page" });
+export function mountCountyRichnessBar({ container: host, presentation = "standalone", store, data, geography, taxa, d3 = globalThis.d3, sizing = {} }) {
+  const frame = createVisualizationFrame({ container: host, html: HTML, presentation, className: "county-bars-page" });
   const { elements } = frame;
   let disposed = false;
   const { loadCountyRichness } = data;
@@ -46,7 +46,7 @@ export function mountCountyRichnessBar({ container: host, store, data, geography
   async function initialize() {
     try {
       const states = geography.filter(row => row.region_level === "state");
-      chart = createCountyRichnessBarChart({ d3, sizing,
+      chart = createCountyRichnessBarChart({ d3, sizing, presentation,
         container,
         tooltip: elements["bar-tooltip"],
         onCountySelect: countyCode => store.setShared({ countyCode })
@@ -107,7 +107,7 @@ export function mountCountyRichnessBar({ container: host, store, data, geography
   }
 
   const ready = initialize();
-  return { root: frame.root, ready, destroy() {
+  return { root: frame.root, controls: frame.controls, ready, destroy() {
     if (disposed) return; disposed = true;
     requestId++;
     unsubscribe?.();

@@ -1,7 +1,9 @@
 // Uses the same GeoJSON, Albers fitting, and county click-selection pattern as us-map.js.
-export function createCountyChoropleth({ d3 = globalThis.d3, sizing = {}, container, tooltip, onCountySelect }) {
-  const width = 960;
-  const height = sizing.height ?? 560;
+export function createCountyChoropleth({ d3 = globalThis.d3, sizing = {}, presentation = "standalone", container, tooltip, onCountySelect }) {
+  const compact = presentation === "compact";
+  let width = 960;
+  let height = sizing.height ?? 560;
+  let current;
   const root = d3.select(container);
   const svg = root.append("svg")
     .attr("class", "county-choropleth__map")
@@ -11,7 +13,7 @@ export function createCountyChoropleth({ d3 = globalThis.d3, sizing = {}, contai
   const polygons = svg.append("g");
   const legend = root.append("svg")
     .attr("class", "county-choropleth__legend")
-    .attr("viewBox", [0, 0, 480, 76])
+    .attr("viewBox", [0, 0, 480, compact ? 60 : 76])
     .attr("role", "img");
   const format = d3.format(",");
 
@@ -46,6 +48,7 @@ export function createCountyChoropleth({ d3 = globalThis.d3, sizing = {}, contai
   }
 
   function setSelectedCounty(countyCode) {
+    if (current) current.selectedCounty = countyCode;
     polygons.selectAll(".county")
       .classed("is-selected", feature => feature.properties.regionCode === countyCode)
       .attr("aria-pressed", feature => String(feature.properties.regionCode === countyCode));
@@ -53,6 +56,8 @@ export function createCountyChoropleth({ d3 = globalThis.d3, sizing = {}, contai
   }
 
   function render({ counties, selectedCounty, stateName }) {
+    current = { counties, selectedCounty, stateName };
+    if (compact) { width = Math.max(240,container.clientWidth); height = Math.max(100,container.clientHeight-56); svg.attr("viewBox",[0,0,width,height]); }
     hideTooltip();
     const maxRichness = Math.max(1, d3.max(counties.features, feature => feature.properties.speciesRichness) || 0);
     const color = d3.scaleSequential(d3.interpolateBlues).domain([0, maxRichness]);
@@ -102,10 +107,12 @@ export function createCountyChoropleth({ d3 = globalThis.d3, sizing = {}, contai
     }
   }
 
+  const resize = compact ? new ResizeObserver(() => { if (current) render(current); }) : null;
+  resize?.observe(container);
   return {
     render,
     setSelectedCounty,
-    clear() { hideTooltip(); polygons.selectAll("*").remove(); legend.selectAll("*").remove(); },
-    destroy() { hideTooltip(); svg.remove(); legend.remove(); }
+    clear() { current = null; hideTooltip(); polygons.selectAll("*").remove(); legend.selectAll("*").remove(); },
+    destroy() { resize?.disconnect(); current = null; hideTooltip(); svg.remove(); legend.remove(); }
   };
 }

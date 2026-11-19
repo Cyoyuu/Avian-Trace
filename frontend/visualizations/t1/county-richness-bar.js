@@ -2,7 +2,8 @@ import { COLORS } from "../../charts/constants.js";
 import { getCountyBarLayout } from "./county-richness-bar-data.js";
 
 // Adapt task1-chart.js's keyed joins and selection colors to a vertical county axis.
-export function createCountyRichnessBarChart({ d3 = globalThis.d3, sizing = {}, container, tooltip, onCountySelect }) {
+export function createCountyRichnessBarChart({ d3 = globalThis.d3, sizing = {}, presentation = "standalone", container, tooltip, onCountySelect }) {
+  const compact = presentation === "compact";
   const root = d3.select(container).append("div").attr("class", "county-bars__layout");
   const yAxis = root.append("svg").attr("class", "county-bars__y-axis").attr("aria-hidden", "true");
   const viewport = root.append("div").attr("class", "county-bars__viewport")
@@ -55,10 +56,10 @@ export function createCountyRichnessBarChart({ d3 = globalThis.d3, sizing = {}, 
   }
 
   function render(model) {
-    current = { ...model };
+    current = { ...model, viewportHeight:container.clientHeight };
     const { rows, selectedCounty } = current;
     hideTooltip();
-    layout = getCountyBarLayout(rows, viewport.node().clientWidth, sizing);
+    layout = getCountyBarLayout(rows, viewport.node().clientWidth, { ...sizing, presentation, availableHeight: container.clientHeight });
     const { width, height, left, right, top, plotHeight } = layout;
     svg.attr("width", width).attr("height", height);
     yAxis.attr("width", 84).attr("height", height);
@@ -70,13 +71,13 @@ export function createCountyRichnessBarChart({ d3 = globalThis.d3, sizing = {}, 
     yAxis.append("g").attr("transform", "translate(76,0)").call(d3.axisLeft(y).ticks(tickCount).tickFormat(d3.format("d")));
     yAxis.append("text").attr("transform", "rotate(-90)")
       .attr("x", -(top + plotHeight / 2)).attr("y", 16).attr("text-anchor", "middle")
-      .text("Number of distinct recorded species");
+      .text(compact ? "Distinct species" : "Number of distinct recorded species");
     grid.attr("transform", "translate(" + left + ",0)")
       .call(d3.axisLeft(y).ticks(tickCount).tickSize(-(width - left - right)).tickFormat(""));
     grid.select(".domain").remove();
     const labels = new Map(rows.map(row => [row.regionCode, row.countyName]));
     xAxis.attr("transform", "translate(0," + (top + plotHeight) + ")")
-      .call(d3.axisBottom(x).tickFormat(code => labels.get(code)));
+      .call(d3.axisBottom(x).tickFormat(code => { const name = labels.get(code); return compact && name.length>12 ? name.slice(0,11)+"…" : name; }));
     xAxis.selectAll("text").attr("transform", "rotate(-65)").attr("text-anchor", "end")
       .attr("dx", "-0.6em").attr("dy", "0.25em");
     const counties = bars.selectAll(".county-bars__county").data(rows, county => county.regionCode)
@@ -113,7 +114,7 @@ export function createCountyRichnessBarChart({ d3 = globalThis.d3, sizing = {}, 
     setSelectedCounty(selectedCounty);
   }
 
-  const resize = new ResizeObserver(() => { if (current && viewport.node().clientWidth !== current.viewportWidth) {
+  const resize = new ResizeObserver(() => { if (current && (viewport.node().clientWidth !== current.viewportWidth || (compact && current.viewportHeight !== container.clientHeight))) {
     render({ ...current, viewportWidth: viewport.node().clientWidth });
   } });
   resize.observe(viewport.node());

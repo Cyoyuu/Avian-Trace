@@ -15,7 +15,7 @@ const HTML = `
     <p id="overlap-status" role="status" aria-live="polite">Loading county choices…</p>
     <p id="overlap-total" class="overlap-total" aria-live="polite"></p>
     <p>Each bar counts species recorded at <strong>exactly</strong> the filled-dot hotspots, and at none of the other selected hotspots. Connected filled dots identify that membership pattern; pale dots indicate absence from that set.</p>
-    <div id="overlap-chart" aria-busy="false"></div>
+    <div id="overlap-chart" data-plot aria-busy="false"></div>
     <div id="overlap-selection" aria-live="polite">Select an intersection to inspect its participating hotspots.</div>
     <h3>Selected hotspot sets</h3>
     <ul id="overlap-hotspots"></ul>
@@ -26,8 +26,8 @@ const HTML = `
 <div id="overlap-tooltip" role="tooltip" hidden></div>
 `;
 
-export function mountHotspotSpeciesOverlap({ container: host, store, data, d3 = globalThis.d3, sizing = {}, initialRows = [], initialMessage = "", selection, onSelectionChange }) {
-  const frame = createVisualizationFrame({ container: host, html: HTML, className: "location-combinations-page hotspot-overlap-page" });
+export function mountHotspotSpeciesOverlap({ container: host, presentation = "standalone", store, data, d3 = globalThis.d3, sizing = {}, initialRows = [], initialMessage = "", initialIntersectionIds = [], onIntersectionSelect, selection, onSelectionChange }) {
+  const frame = createVisualizationFrame({ container: host, html: HTML, presentation, className: "location-combinations-page hotspot-overlap-page" });
   const { elements } = frame;
   let disposed = false;
   const { loadHotspotSpecies, loadHotspots } = data;
@@ -49,6 +49,7 @@ export function mountHotspotSpeciesOverlap({ container: host, store, data, d3 = 
   let cachedRows = initialRows;
   let model;
   let selectedMask = null;
+  let pendingIntersectionIds = [...initialIntersectionIds];
 
   function renderSelection() {
     const row = model?.intersections.find(intersection => intersection.mask === selectedMask);
@@ -68,6 +69,7 @@ export function mountHotspotSpeciesOverlap({ container: host, store, data, d3 = 
   async function update({ changedKeys = [] } = {}) {
     if (disposed) return;
     const filters = { ...store.getFilters("t4"), candidateLocationIds: selectionSource.getIds() };
+    if (frame.pickerTrigger) frame.pickerTrigger.textContent = "Hotspots · " + filters.candidateLocationIds.length + "/5";
     const token = ++request;
     if (changedKeys.length) message.hidden = true;
     selectedMask = null; model = undefined;
@@ -89,13 +91,19 @@ export function mountHotspotSpeciesOverlap({ container: host, store, data, d3 = 
         cachedRows = rows; cacheKey = key;
       }
       model = buildExclusiveIntersections(cachedRows);
+      if (pendingIntersectionIds.length) {
+        const key=[...pendingIntersectionIds].sort().join("|");
+        selectedMask=model.intersections.find(row=>[...row.locationIds].sort().join("|")===key)?.mask ?? null;
+        pendingIntersectionIds=[];
+      }
       picker?.setLabels(cachedRows);
+      renderSelection();
       chart.render({ model, selectedMask });
       model.locations.forEach(location => {
         const item = document.createElement("li"); item.textContent = location.name + " [" + location.id + "] · " + location.richness + " distinct species"; locationList.append(item);
       });
       const sum = model.intersections.reduce((value,row)=>value+row.count,0);
-      total.textContent = "Total distinct-species richness: " + model.unionRichness + " · sum of exclusive intersections: " + sum;
+      total.textContent = presentation === "compact" ? "Union: " + model.unionRichness + " species · intersection sum: " + sum : "Total distinct-species richness: " + model.unionRichness + " · sum of exclusive intersections: " + sum;
       status.textContent = model.intersections.length
         ? model.locations.length + " hotspots · " + model.intersections.length + " nonempty exclusive intersections · " + filters.countyCode + " · 2012–2025."
         : "No species recorded in these hotspot memberships. All selected sets are empty.";
@@ -110,11 +118,12 @@ export function mountHotspotSpeciesOverlap({ container: host, store, data, d3 = 
 
   async function initialize() {
     try {
-      chart = createHotspotOverlapChart({ d3, sizing, container, tooltip:elements["overlap-tooltip"], onSelect:mask=>{
+      chart = createHotspotOverlapChart({ d3, sizing, presentation, container, tooltip:elements["overlap-tooltip"], onSelect:mask=>{
         selectedMask=mask; renderSelection(); chart.render({model,selectedMask});
+        onIntersectionSelect?.([...model.intersections.find(row=>row.mask===mask).locationIds]);
       } });
       if (selectionSource.setIds) picker = createHotspotPicker({ container:elements["hotspot-picker"], store, loadLocations:loadHotspots, maxCandidates:5, selection: selectionSource });
-      else elements["hotspot-picker"].closest("section").hidden = true;
+      else { elements["hotspot-picker"].closest("section").hidden = true; if (frame.pickerTrigger) frame.pickerTrigger.hidden = true; }
       picker?.setLabels(cachedRows);
       unsubscribe = store.subscribe({keys:["shared.stateCode","shared.countyCode",...selectionSource.keys]},update);
       await update();
@@ -123,7 +132,7 @@ export function mountHotspotSpeciesOverlap({ container: host, store, data, d3 = 
   }
   if (initialMessage) { message.textContent = initialMessage; message.hidden = false; }
   const ready = initialize();
-  return { root: frame.root, ready, destroy() {
+  return { root: frame.root, controls: frame.controls, ready, destroy() {
     if (disposed) return; disposed = true; request++;
     unsubscribe?.(); picker?.destroy(); chart?.destroy(); frame.destroy();
   } };

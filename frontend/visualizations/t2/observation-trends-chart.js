@@ -1,6 +1,7 @@
 import { COLORS, MARGIN } from "../../charts/constants.js";
 /** Responsive standalone adaptation of the existing yearly line and point chart. */
-export function createObservationTrendsChart({ d3 = globalThis.d3, sizing = {}, container, tooltip }) {
+export function createObservationTrendsChart({ d3 = globalThis.d3, sizing = {}, presentation = "standalone", container, tooltip }) {
+  const compact = presentation === "compact";
   const svg = d3.select(container).append("svg").attr("class", "observation-trends__plot")
     .attr("role", "group").attr("aria-label", "Yearly observation records for the selected species")
     .attr("width", 0).attr("height", 0);
@@ -28,11 +29,11 @@ export function createObservationTrendsChart({ d3 = globalThis.d3, sizing = {}, 
   }
 
   function render(model) {
-    const width = Math.max(720, container.clientWidth);
-    const height = sizing.height ?? 480;
-    const margin = { ...MARGIN, top: 24, bottom: 60 };
+    const width = Math.max(compact ? 320 : 720, container.clientWidth);
+    const height = compact ? Math.max(150, container.clientHeight) : (sizing.height ?? 480);
+    const margin = compact ? { left:68, right:16, top:12, bottom:34 } : { ...MARGIN, top:24, bottom:60 };
     const { series, startYear, endYear } = model;
-    current = { ...model, viewportWidth: container.clientWidth };
+    current = { ...model, viewportWidth: container.clientWidth, viewportHeight: container.clientHeight };
     hideTooltip();
     svg.attr("width", width).attr("height", height).selectAll("*").remove();
     // A one-year range has one centered point, with an integer year tick.
@@ -47,7 +48,7 @@ export function createObservationTrendsChart({ d3 = globalThis.d3, sizing = {}, 
     grid.select(".domain").remove();
     svg.append("g").attr("class", "observation-trends__axis").attr("aria-hidden", "true")
       .attr("transform", "translate(0," + (height - margin.bottom) + ")")
-      .call(d3.axisBottom(x).tickValues(series.map(point => point.year)).tickFormat(d3.format("d")));
+      .call(d3.axisBottom(x).tickValues(series.filter((point,index) => !compact || index % Math.max(1, Math.ceil(series.length / Math.max(2, Math.floor((width-margin.left-margin.right)/75)))) === 0 || index === series.length-1).map(point => point.year)).tickFormat(d3.format("d")));
     svg.append("g").attr("class", "observation-trends__axis").attr("aria-hidden", "true")
       .attr("transform", "translate(" + margin.left + ",0)")
       .call(d3.axisLeft(y).ticks(tickCount).tickFormat(format));
@@ -56,7 +57,7 @@ export function createObservationTrendsChart({ d3 = globalThis.d3, sizing = {}, 
       .attr("text-anchor", "middle").text("Year");
     svg.append("text").attr("class", "observation-trends__axis-label")
       .attr("transform", "rotate(-90)").attr("x", -(height - margin.bottom + margin.top) / 2)
-      .attr("y", 20).attr("text-anchor", "middle").text("Number of observation records");
+      .attr("y", 20).attr("text-anchor", "middle").text(compact ? "Observation records" : "Number of observation records");
     const line = d3.line().defined(point => point.observationRecords !== null)
       .x(point => x(point.year)).y(point => y(point.observationRecords));
     svg.append("path").datum(series).attr("class", "observation-trends__line")
@@ -83,7 +84,7 @@ export function createObservationTrendsChart({ d3 = globalThis.d3, sizing = {}, 
   }
 
   const resize = new ResizeObserver(() => {
-    if (current && current.viewportWidth !== container.clientWidth) render(current);
+    if (current && (current.viewportWidth !== container.clientWidth || (compact && current.viewportHeight !== container.clientHeight))) render(current);
   });
   resize.observe(container);
   return {

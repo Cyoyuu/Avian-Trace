@@ -2,7 +2,7 @@
 
 ## Frontend composition and reusable views
 
-Each visualization has one reusable mounted view, used by its existing standalone page and available to a future composition with an injected shared store. There are no separate standalone/dashboard chart implementations. The refactor preserves the existing chart appearance, defaults, calculations, APIs, filter semantics, and HTML page URLs. It introduces neither a dashboard nor compact mode.
+Each visualization has one reusable mounted view, used by its existing standalone page and available to a future composition with an injected shared store. There are no separate standalone/dashboard chart implementations. The refactor preserves the existing chart appearance, defaults, calculations, APIs, filter semantics, and HTML page URLs. Standalone presentation remains the default; compact presentation is opt-in. No combined dashboard is implemented.
 
 ### Directory ownership
 
@@ -76,7 +76,7 @@ A view creates only its own subtree, subscribes to relevant store paths, and own
 
 ready represents the initial update, not every subsequent store change. Destruction unsubscribes, invalidates pending request versions, disconnects renderer resize observers, removes owned controls/listeners, and prevents late success or failure from recreating or updating DOM. The choropleth also checks destruction after pending geometry initialization. In-flight network/database work is not aborted; its results are ignored after destruction. Repeated destruction is safe.
 
-The existing responsive width behavior and minimum-width scrolling remain. Sizing overrides preserve defaults: the county bars and T4 bars accept sizing.plotHeight, the line charts and map accept sizing.height, and UpSet accepts sizing.plotHeight/rowHeight. Heatmap height follows its displayed row count. No automatic compact layout is applied.
+The existing responsive width behavior and minimum-width scrolling remain. Sizing overrides preserve defaults: the county bars and T4 bars accept sizing.plotHeight, the line charts and map accept sizing.height, and UpSet accepts sizing.plotHeight/rowHeight. Heatmap height follows its displayed row count. Compact layout is applied only when presentation: "compact" is explicitly requested.
 
 ### Standalone versus future composition
 
@@ -90,10 +90,73 @@ The existing legacy us-map.html, holiday-test.html, and test.html files remain i
 
 ### Refactor regression checks
 
-npm test retains the original 43 calculation/state tests and adds filter-option, browser-free view-import, unchanged-page-path and relative-import checks (47 tests total). Calculations and API contracts are unchanged. For real-DOM lifecycle checks, start npm start, then run node tests/browser/server.js in another terminal and open /view-lifecycle.html on that test server's port 3001. This test-only server is not an application dashboard or a production route.
+npm test retains the original 43 calculation/state tests and adds filter-option, browser-free view-import, unchanged-page-path and relative-import checks (49 tests total, including the compact-layout checks). Calculations and API contracts are unchanged. For real-DOM lifecycle checks, start npm start, then run node tests/browser/server.js in another terminal and open /view-lifecycle.html on that test server's port 3001. This test-only server is not an application dashboard or a production route.
 
 The browser harness mounts every view repeatedly at different widths, resizes mounted containers, destroys views during pending successful/failed requests, destroys a map during geometry initialization, checks unsubscription and stale DOM writes, mounts all seven with one store, checks unique IDs and CSS appearance isolation, verifies relevant-filter notifications and county highlighting/reset, and exercises the T4 selected-combination input binding. Standalone pages retain their existing appearance and interactions. Frontend structural documentation stays here; the database/geography documents retain their separate domain responsibilities. The centralized URL table below remains the only visualization URL inventory.
 
+
+
+## Compact presentation contract
+
+All seven existing mount functions accept presentation: "compact". Omission or presentation: "standalone" retains the existing standalone layout and metrics. Invalid presentation values are rejected. There are no separate compact renderers: the same models, callbacks, subscriptions, and render functions use presentation-specific layout metrics. API requests, data calculations, and filter semantics are unchanged.
+
+~~~js
+const view = mountSeasonalSpeciesHeatmap({
+  container, store, data, geography, d3,
+  presentation: "compact"
+});
+// The host allocates a bounded CSS width and height; e.g. 768px × 324px.
+// Render local controls in the view's compact toolbar when appropriate:
+const controls = createFilterHeader({
+  container: view.controls, store, chartId: "t2Heatmap", scope: "chart"
+});
+await view.ready;
+// Destroy host-owned controls and the view when removing the panel:
+controls.destroy();
+view.destroy();
+~~~
+
+view.controls is the compact toolbar slot (undefined in standalone mode). Header ownership stays with composition, and shared controls remain outside the visualization. The existing shared header keeps its approximately 52px toolbar/34px controls. Compact local controls share the panel's title row. Mounting does not set document-level overflow or build a dashboard: the host supplies bounded panel dimensions and its application layout. The view confines dense content to internal scroll regions. The dimensions below are targets, not hard-coded card dimensions in the renderers.
+
+### Target panel allocations
+
+The supplied dashboard mockup establishes placement and visual hierarchy, using illustrative geometry/data. The future seasonal and overlap configurations share five common panels and one interchangeable panel. At a 1920 × 1080 CSS viewport, the proposed envelope is 16px outer padding, an 88px branding/filter area containing the compact shared toolbar, a 12px gap before the panels, and 12px row/16px column gaps. This is a sizing reference only; neither dashboard configuration is implemented in this milestone.
+
+| Position | View | Target width × height |
+| --- | --- | --- |
+| Upper-left | County choropleth | 1088 × 360px |
+| Upper-right | County richness bars | 784 × 360px |
+| Middle-left | Observation trends | 936 × 240px |
+| Middle-right | Holiday patterns | 936 × 240px |
+| Bottom-left, interchangeable | Seasonal heatmap or UpSet | 768 × 324px |
+| Bottom-right | Hotspot combination bars | 1104 × 324px |
+
+### Compact layout and overflow
+
+The supporting frame is a bounded flex layout with title/local-controls, a short live status, and available plot space. Existing explanatory paragraphs and complete selection details remain in a Details dialog rather than consuming plot height. Dynamic status text remains accessible and its full text is available as a title when visually shortened. Hotspot views retain an Access varies reminder and the full private/restricted-access notice in the selector overlay. Empty, loading, unavailable and error states remain distinct from recorded zeros.
+
+- Choropleth: refits geometry to the current plot width/height and retains its sequential legend and county selection. The standalone viewBox is unchanged.
+- County bars: retain every county, the fixed Y-axis and highlight behavior. Compact labels are shortened to fit a smaller label band; full names/counts remain in tooltips and accessible column descriptions. Large states scroll horizontally, with at least a readable slot for each county.
+- Trends/holiday lines: use the available height and smaller margins, preserve every data point, reduce only displayed X-axis tick density, and retain full tooltip values. The holiday series legend remains visible.
+- Combination bars: preserve all ranking results and 50-item pagination. Compact label lines and a smaller plot/label budget fit the panel; dense pages scroll horizontally. Global-best highlighting and selection are unchanged.
+- Heatmap: uses abbreviated month labels, a bounded species-name column and 18px species rows. Month labels and the numeric sequential legend remain fixed while species rows scroll. A narrow body can also scroll horizontally, with month positions synchronized. Typical 15/20-species selections require vertical scrolling at the target height; exact visible row count depends on controls and scrollbar space. Full species names/months/counts remain available in cell tooltips and accessible labels. The standalone 30px rows and original legend are unchanged.
+- UpSet: retains bars, exclusive counts, connected membership dots, selection and keyboard navigation. Compact mode uses 200px hotspot labels, 24px matrix rows and 28px intersection slots. Up to 31 nonempty five-set patterns remain available through internal horizontal scrolling; long names are shortened visually, with full names/IDs in tooltips, label titles and Details. Union richness and the intersection sum remain visible together.
+
+Practical planning minimums remain approximately 720 × 300px for a heatmap with row scrolling and 720 × 320px for a five-hotspot UpSet with column scrolling. A heatmap showing 15 or 20 rows without vertical scrolling needs more height than the target panel. Showing all 31 UpSet patterns without horizontal scrolling needs roughly 1,100px total width with the implemented 28px slots and label column. At smaller sizes the views retain readable minimum plot dimensions and internal scrolling; they do not scale labels down indefinitely. Compact line plots use a minimum 150px SVG height. Container resizing is observed in both dimensions, while standalone dimensions retain their prior defaults.
+
+### Overlays, tooltips and lifecycle
+
+The compact hotspot selector is a native dialog in the browser's top layer. Opening it never expands the chart card. It retains the existing search, selection limits, 50-result pagination, validation, and single-store writes. It receives focus, contains native modal keyboard navigation, closes with Escape or its Close button, and restores focus to the trigger. Closing preserves selections and search/page state. Removing a selected chip while the overlay is open returns focus to search. The standalone picker remains inline and retains its previous default behavior.
+
+Compact tooltips are portaled to document.body with their existing IDs, classes and content, so transformed/overflow-clipped chart containers cannot clip them. The existing renderers clamp positions to the viewport. Details and selector dialogs own their content without duplicating dynamic IDs. destroy removes owned portals and dialogs as well as the normal view subtree, unsubscribes, disconnects observers, and invalidates pending requests; late success/failure cannot recreate the removed view.
+
+UpSet exposes optional initialIntersectionIds and onIntersectionSelect hooks using stable participating locality IDs. A host can retain an intersection highlight across destroy/remount without persisting a bitmask or creating a second filter store. Restoration selects only a matching nonempty pattern in the current model; incompatible IDs remain unselected. These hooks do not implement configuration switching or URL ownership, which stays outside reusable views.
+
+### Development-only verification
+
+Start npm start, then node tests/browser/server.js in another terminal. On that test server (127.0.0.1:3001), compact-preview.html renders one selectable compact visualization at a time, with target dimensions, existing shared/local filters and width/height controls. It is not a combined dashboard and adds no production visualization URL. compact-regression.html runs real-DOM checks for all seven compact views, unchanged standalone heights/mark counts, target panel bounds, no page-level overflow at 1920 × 1080, resizing, viewport-clamped tooltips, legend clipping, dense internal scrolling (254 counties, 252 combinations/50 per page, 20 species, all 31 UpSet patterns), modal focus, portal/ID cleanup, pending resolve/reject destruction, stable-ID intersection restoration and simultaneous compact instances sharing one store. view-lifecycle.html retains the original standalone/shared-store lifecycle checks. npm test runs all existing calculation/filter tests plus compact geometry and architecture checks (49 tests total).
+
+The development preview and regression harness do not compose the planned two dashboards. Their configuration layouts, shared-header composition, and interchangeable-panel switching remain a separate milestone. Standalone URLs and the centralized URL table below are retained.
 
 ## Reusable filtering
 

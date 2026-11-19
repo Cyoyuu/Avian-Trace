@@ -15,7 +15,7 @@ const HTML = `
     <p id="combination-status" role="status" aria-live="polite">Loading county choices…</p>
     <p><span class="best-swatch" aria-hidden="true"></span> Orange: greatest richness across all combinations, including ties. Outlined: selected combination.</p>
     <div class="combination-pages"><button id="previous-combinations" type="button" disabled>Previous combinations</button><span id="combination-page"></span><button id="next-combinations" type="button" disabled>Next combinations</button></div>
-    <div id="combination-chart" aria-busy="false"></div>
+    <div id="combination-chart" data-plot aria-busy="false"></div>
     <div id="selected-combination" aria-live="polite">Select a bar to inspect its complete location names and IDs.</div>
     <p>All combinations are calculated before sorting and pagination (50 per page). Hover or focus a bar for full names and richness; click, Enter, or Space selects it. Scroll horizontally to explore the current page.</p>
     <p>Richness counts distinct species across the union of locations, counting each species once. It reflects recorded coverage, not population size or equal observation effort. Shared species, year-range, and season selections do not restrict T4.</p>
@@ -23,8 +23,8 @@ const HTML = `
 <div id="combination-tooltip" role="tooltip" hidden></div>
 `;
 
-export function mountLocationCombinations({ container: host, store, data, geography, taxa, d3 = globalThis.d3, sizing = {}, onExploreOverlap }) {
-  const frame = createVisualizationFrame({ container: host, html: HTML, className: "location-combinations-page" });
+export function mountLocationCombinations({ container: host, presentation = "standalone", store, data, geography, taxa, d3 = globalThis.d3, sizing = {}, onExploreOverlap }) {
+  const frame = createVisualizationFrame({ container: host, html: HTML, presentation, className: "location-combinations-page" });
   const { elements } = frame;
   let disposed = false;
   const { loadHotspots, loadHotspotSpecies } = data;
@@ -43,6 +43,7 @@ export function mountLocationCombinations({ container: host, store, data, geogra
 
   function render() {
     const filters = store.getFilters("t4");
+    if (frame.pickerTrigger) frame.pickerTrigger.textContent = "Hotspots · " + filters.candidateLocationIds.length + "/10";
     const sorted = sortLocationCombinations(combinations, filters.sortOrder);
     const result = pageLocationCombinations(sorted, page);
     page = result.page;
@@ -103,7 +104,7 @@ export function mountLocationCombinations({ container: host, store, data, geogra
 
   async function initialize() {
     try {
-      chart = createLocationCombinationChart({ d3, sizing, container, tooltip: elements["combination-tooltip"], onSelect: ids => store.setChart("t4", { selectedCombinationIds: ids }) });
+      chart = createLocationCombinationChart({ d3, sizing, presentation, container, tooltip: elements["combination-tooltip"], onSelect: ids => store.setChart("t4", { selectedCombinationIds: ids }) });
       picker = createHotspotPicker({ container: elements["hotspot-picker"], store, loadLocations: loadHotspots });
       unsubscribe = store.subscribe({ chartId: "t4" }, update);
       previous.addEventListener("click", onPrevious);
@@ -116,7 +117,7 @@ export function mountLocationCombinations({ container: host, store, data, geogra
   function onNext() { page++; render(); }
 
   const ready = initialize();
-  return { root: frame.root, ready, destroy() {
+  return { root: frame.root, controls: frame.controls, ready, destroy() {
     if (disposed) return; disposed = true;
     request++;
     unsubscribe?.();

@@ -6,15 +6,15 @@ const HTML = `
 <p id="heatmap-status" role="status" aria-live="polite">Loading geographic options…</p>
       <h2 id="heatmap-title">Select a state</h2>
       <p id="heatmap-context"></p>
-      <div id="species-heatmap" aria-busy="true" tabindex="0" role="region" aria-label="Monthly observation totals. Scroll horizontally on narrow screens to see all months."></div>
+      <div id="species-heatmap" data-plot aria-busy="true" tabindex="0" role="region" aria-label="Monthly observation totals. Scroll horizontally on narrow screens to see all months."></div>
       <p id="coverage-note" aria-live="polite"></p>
       <p class="species-heatmap-page__note">Cell values are observation totals aggregated across the selected years, not monthly averages. Darker blue means more records. Hover or focus a cell to inspect its species, month, and total.</p>
       <p class="species-heatmap-page__note">Species are selected by total observation records across all twelve months before display sorting. A zero means no matching records in processed data; it does not establish that a species was absent. Shared single-species selections and the trends chart's season do not restrict this heatmap.</p>
 <div id="heatmap-tooltip" class="species-heatmap__tooltip" role="tooltip" hidden></div>
 `;
 
-export function mountSeasonalSpeciesHeatmap({ container: host, store, data, geography, taxa, d3 = globalThis.d3, sizing = {} }) {
-  const frame = createVisualizationFrame({ container: host, html: HTML, className: "species-heatmap-page" });
+export function mountSeasonalSpeciesHeatmap({ container: host, presentation = "standalone", store, data, geography, taxa, d3 = globalThis.d3, sizing = {} }) {
+  const frame = createVisualizationFrame({ container: host, html: HTML, presentation, className: "species-heatmap-page" });
   const { elements } = frame;
   let disposed = false;
   const { loadSpeciesHeatmap } = data;
@@ -36,7 +36,7 @@ export function mountSeasonalSpeciesHeatmap({ container: host, store, data, geog
 
   async function initialize() {
     try {
-      chart = createSpeciesHeatmap({ d3, sizing, container, tooltip: elements["heatmap-tooltip"] });
+      chart = createSpeciesHeatmap({ d3, sizing, presentation, container, tooltip: elements["heatmap-tooltip"] });
       async function update({ filters, changedKeys }) {
         if (disposed) return;
         if (changedKeys.length && changedKeys.every(key => key === "charts.t2Heatmap.sortOrder")) {
@@ -95,7 +95,7 @@ export function mountSeasonalSpeciesHeatmap({ container: host, store, data, geog
     }
   }
   const ready = initialize();
-  return { root: frame.root, ready, destroy() {
+  return { root: frame.root, controls: frame.controls, ready, destroy() {
     if (disposed) return; disposed = true;
     requestId++;
     unsubscribe?.();

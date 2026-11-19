@@ -1,7 +1,15 @@
 import { MONTH_NAMES } from "./species-heatmap-data.js";
 
-export function createSpeciesHeatmap({ d3 = globalThis.d3, sizing = {}, container, tooltip }) {
-  const svg = d3.select(container).append("svg").attr("class", "species-heatmap__plot")
+export function createSpeciesHeatmap({ d3 = globalThis.d3, sizing = {}, presentation = "standalone", container, tooltip }) {
+  const compact = presentation === "compact";
+  const root = d3.select(container);
+  const months = compact ? root.append("div").attr("class","visualization-heatmap__months") : null;
+  const monthSvg = months?.append("svg").attr("height",28).attr("aria-hidden","true");
+  const body = compact ? root.append("div").attr("class","visualization-heatmap__body").attr("tabindex",0).attr("role","region").attr("aria-label","Species rows. Scroll vertically for every species and horizontally if needed.") : root;
+  const legendViewport = compact ? root.append("div").attr("class","visualization-heatmap__legend") : null;
+  const legendSvg = legendViewport?.append("svg").attr("height",40).attr("aria-hidden","true");
+  if (compact) body.on("scroll.compact", () => { months.node().scrollLeft=body.node().scrollLeft; });
+  const svg = body.append("svg").attr("class", "species-heatmap__plot")
     .attr("role", "group").attr("aria-label", "Monthly observation totals by species")
     .attr("width", 0).attr("height", 0);
   const format = d3.format(",");
@@ -31,29 +39,31 @@ export function createSpeciesHeatmap({ d3 = globalThis.d3, sizing = {}, containe
 
   function render(model) {
     const { species, startYear, endYear } = model;
-    current = { ...model, viewportWidth: container.clientWidth };
+    current = { ...model, viewportWidth: container.clientWidth, viewportHeight:container.clientHeight, bodyWidth:body.node().clientWidth };
     hideTooltip();
-    const left = Math.max(180, (d3.max(species, item => item.speciesName.length * 7.5) || 0) + 36);
-    const top = 94;
-    const width = Math.max(container.clientWidth, left + 12 * 64 + 24);
-    const height = top + species.length * 30 + 104;
+    const left = compact ? 200 : Math.max(180, (d3.max(species, item => item.speciesName.length * 7.5) || 0) + 36);
+    const top = compact ? 0 : 94;
+    const rowHeight = compact ? 18 : 30;
+    const width = Math.max(compact ? body.node().clientWidth : container.clientWidth, left + 12 * (compact ? 40 : 64) + 24);
+    const height = compact ? species.length * rowHeight : top + species.length * rowHeight + 104;
     svg.attr("width", width).attr("height", height).selectAll("*").remove();
+    if (compact) { monthSvg.attr("width",width).selectAll("*").remove(); legendSvg.attr("width",Math.max(360,container.clientWidth)).selectAll("*").remove(); }
     const x = d3.scaleBand().domain(d3.range(1, 13)).range([left, width - 24]).padding(0.03);
-    const y = d3.scaleBand().domain(species.map(item => item.taxonId)).range([top, top + species.length * 30]).padding(0.06);
+    const y = d3.scaleBand().domain(species.map(item => item.taxonId)).range([top, top + species.length * rowHeight]).padding(0.06);
     const cells = species.flatMap(item => item.cells);
     const max = Math.max(1, d3.max(cells, cell => cell.observationRecords) || 0);
     const color = d3.scaleSequential(d3.interpolateBlues).domain([0, max]);
-    svg.append("g").attr("class", "species-heatmap__month-axis").attr("aria-hidden", "true")
-      .attr("transform", "translate(0," + (top - 8) + ")")
-      .call(d3.axisTop(x).tickSize(0).tickFormat(month => MONTH_NAMES[month - 1]))
+    (compact ? monthSvg : svg).append("g").attr("class", "species-heatmap__month-axis").attr("aria-hidden", "true")
+      .attr("transform", "translate(0," + (compact ? 24 : top - 8) + ")")
+      .call(d3.axisTop(x).tickSize(0).tickFormat(month => compact ? MONTH_NAMES[month-1].slice(0,3) : MONTH_NAMES[month-1]))
       .call(axis => axis.select(".domain").remove())
-      .selectAll("text").attr("transform", "rotate(-45)").attr("text-anchor", "start").attr("dx", "0.3em");
+      .selectAll("text").attr("transform", compact ? null : "rotate(-45)").attr("text-anchor", compact ? "middle" : "start").attr("dx", compact ? 0 : "0.3em");
     const names = new Map(species.map(item => [item.taxonId, item.speciesName]));
     svg.append("g").attr("class", "species-heatmap__species-axis").attr("aria-hidden", "true")
       .attr("transform", "translate(" + (left - 8) + ",0)")
-      .call(d3.axisLeft(y).tickSize(0).tickFormat(id => names.get(id)))
+      .call(d3.axisLeft(y).tickSize(0).tickFormat(id => { const name=names.get(id); return compact && name.length>28 ? name.slice(0,27)+"…" : name; }))
       .call(axis => axis.select(".domain").remove());
-    svg.append("text").attr("x", 14).attr("y", top - 14).text("Bird species");
+    (compact ? monthSvg : svg).append("text").attr("x", 14).attr("y", compact ? 18 : top - 14).text("Bird species");
     svg.append("g").selectAll(".species-heatmap__cell").data(cells, cell => cell.taxonId + ":" + cell.month)
       .join("rect").attr("class", "species-heatmap__cell")
       .attr("x", cell => x(cell.month)).attr("y", cell => y(cell.taxonId))
@@ -68,25 +78,28 @@ export function createSpeciesHeatmap({ d3 = globalThis.d3, sizing = {}, containe
       .on("pointermove", function(event) { positionTooltip(event, this); })
       .on("pointerleave blur", hideTooltip)
       .on("keydown", event => { if (event.key === "Escape") hideTooltip(); });
-    const legend = svg.append("g").attr("class", "species-heatmap__legend")
-      .attr("transform", "translate(" + left + "," + (height - 72) + ")");
-    legend.append("text").attr("y", 0).text("Observation totals across " + startYear + "–" + endYear + " · darker means more records");
+    const legendStart=compact?Math.min(300,Math.max(160,container.clientWidth-280)):0;
+    const legendSpan=compact?Math.min(256,Math.max(120,container.clientWidth-legendStart-40)):256;
+    const legend = (compact ? legendSvg : svg).append("g").attr("class", "species-heatmap__legend")
+      .attr("transform", "translate(" + (compact?8:left) + "," + (compact?0:height-72) + ")");
+    legend.append("text").attr("y", compact?14:0).text(compact ? (container.clientWidth<650?"Records · ":"Observation totals · ") + startYear + "–" + endYear + (container.clientWidth<650?"":" · darker = more") : "Observation totals across " + startYear + "–" + endYear + " · darker means more records");
     legend.selectAll("rect").data(d3.range(64)).join("rect")
-      .attr("x", index => index * 4).attr("y", 12).attr("width", 4.1).attr("height", 12)
+      .attr("x", index => legendStart + index * legendSpan/64).attr("y", compact?4:12).attr("width", legendSpan/64+0.1).attr("height", 12)
       .attr("fill", index => color(index / 63 * max));
-    legend.append("g").attr("transform", "translate(0,24)")
-      .call(d3.axisBottom(d3.scaleLinear().domain([0, max]).range([0, 256]))
+    legend.append("g").attr("transform", "translate(0,"+(compact?16:24)+")")
+      .call(d3.axisBottom(d3.scaleLinear().domain([0, max]).range([legendStart,legendStart+legendSpan]))
         .tickValues([...new Set([0, Math.round(max / 2), max])]).tickFormat(format));
     if (cells.some(cell => cell.observationRecords === null)) {
-      legend.append("rect").attr("x", 292).attr("y", 12).attr("width", 12).attr("height", 12).attr("fill", "#d1d5db");
-      legend.append("text").attr("x", 312).attr("y", 23).text("Unavailable");
+      legend.append("rect").attr("x", compact?8:292).attr("y", compact?24:12).attr("width", 12).attr("height", 12).attr("fill", "#d1d5db");
+      legend.append("text").attr("x", compact?26:312).attr("y", compact?34:23).text("Unavailable");
     }
   }
-  const resize = new ResizeObserver(() => { if (current && current.viewportWidth !== container.clientWidth) render(current); });
+  const resize = new ResizeObserver(() => { if (current && (current.viewportWidth !== container.clientWidth || (compact && (current.viewportHeight !== container.clientHeight || current.bodyWidth !== body.node().clientWidth)))) render(current); });
   resize.observe(container);
+  if(compact)resize.observe(body.node());
   return {
     render,
-    clear() { current = null; hideTooltip(); svg.selectAll("*").remove(); svg.attr("width", 0).attr("height", 0); },
-    destroy() { resize.disconnect(); hideTooltip(); svg.remove(); }
+    clear() { current = null; hideTooltip(); svg.selectAll("*").remove(); svg.attr("width", 0).attr("height", 0); monthSvg?.selectAll("*").remove(); legendSvg?.selectAll("*").remove(); },
+    destroy() { resize.disconnect(); hideTooltip(); svg.remove(); if(compact) { body.on("scroll.compact",null).remove(); months.remove(); legendViewport.remove(); } }
   };
 }

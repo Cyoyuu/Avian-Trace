@@ -36,6 +36,7 @@ export function createHotspotPicker({ container, store, loadLocations, maxCandid
 
   function draw() {
     if (destroyed) return;
+    const selectedWasFocused = Boolean(form.closest("dialog")) && selected.contains(document.activeElement);
     const focusedId = results.contains(document.activeElement) ? document.activeElement.value : null;
     const ids = selectionSource.getIds();
     selected.replaceChildren(...ids.map(id => {
@@ -65,6 +66,7 @@ export function createHotspotPicker({ container, store, loadLocations, maxCandid
       return label;
     }));
     if (focusedId) [...results.querySelectorAll("input")].find(input => input.value === focusedId)?.focus();
+    else if (selectedWasFocused) input.focus();
     previous.disabled = busy || !county || page <= 1;
     next.disabled = busy || !county || page * 50 >= total;
     input.disabled = !county;

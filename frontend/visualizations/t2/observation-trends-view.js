@@ -7,15 +7,15 @@ const HTML = `
 <p id="trend-status" role="status" aria-live="polite">Loading geographic and species options…</p>
       <h2 id="trend-title">Select an area and species</h2>
       <p id="trend-context"></p>
-      <div id="trend-chart" aria-busy="true" tabindex="0" role="region" aria-label="Observation trends. Scroll horizontally on narrow screens to see every year."></div>
+      <div id="trend-chart" data-plot aria-busy="true" tabindex="0" role="region" aria-label="Observation trends. Scroll horizontally on narrow screens to see every year."></div>
       <p id="coverage-note" aria-live="polite"></p>
       <p class="observation-trends-page__note">Hover or focus a yearly point to see its observation count. A processed year with no matching records is shown as zero; an unavailable summary produces a line gap. Zero recorded observations does not establish that a species was absent.</p>
       <p class="observation-trends-page__note">Counts are species-category observation records, not individual birds, unique checklists, or population estimates. Winter selects January, February, and December within each labeled year. The available complete-year range is 2012–2025; partial-year 2026 is excluded.</p>
 <div id="trend-tooltip" class="observation-trends__tooltip" role="tooltip" hidden></div>
 `;
 
-export function mountObservationTrends({ container: host, store, data, geography, taxa, d3 = globalThis.d3, sizing = {} }) {
-  const frame = createVisualizationFrame({ container: host, html: HTML, className: "observation-trends-page" });
+export function mountObservationTrends({ container: host, presentation = "standalone", store, data, geography, taxa, d3 = globalThis.d3, sizing = {} }) {
+  const frame = createVisualizationFrame({ container: host, html: HTML, presentation, className: "observation-trends-page" });
   const { elements } = frame;
   let disposed = false;
   const { loadSpeciesTrend } = data;
@@ -29,7 +29,7 @@ const container = elements["trend-chart"];
 
   async function initialize() {
     try {
-      chart = createObservationTrendsChart({ d3, sizing, container, tooltip: elements["trend-tooltip"] });
+      chart = createObservationTrendsChart({ d3, sizing, presentation, container, tooltip: elements["trend-tooltip"] });
 
       async function update({ filters }) {
         if (disposed) return;
@@ -85,7 +85,7 @@ const container = elements["trend-chart"];
   }
 
   const ready = initialize();
-  return { root: frame.root, ready, destroy() {
+  return { root: frame.root, controls: frame.controls, ready, destroy() {
     if (disposed) return; disposed = true;
     requestId++;
     unsubscribe?.();

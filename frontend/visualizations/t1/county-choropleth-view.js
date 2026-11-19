@@ -7,7 +7,7 @@ import { createVisualizationFrame } from "../../components/visualization-frame.j
 const HTML = `
 <p id="map-status" role="status" aria-live="polite">Loading geographic options…</p>
       <h2 id="map-title">Select a state</h2>
-      <div id="county-map" aria-busy="true"></div>
+      <div id="county-map" data-plot aria-busy="true"></div>
       <p id="county-selection" aria-live="polite">No county highlighted.</p>
       <p id="geometry-note"></p>
       <p class="county-richness-page__note">Darker blue indicates more recorded species. Click a county or use the county selector to highlight it; every county remains in the statewide comparison. Keyboard users can focus a county and press Enter or Space. Choose “Select county” to clear the highlight.</p>
@@ -15,8 +15,8 @@ const HTML = `
 <div id="county-tooltip" class="county-choropleth__tooltip" role="tooltip" hidden></div>
 `;
 
-export function mountCountyChoropleth({ container: host, store, data, geography, taxa, d3 = globalThis.d3, topojson = globalThis.topojson, sizing = {} }) {
-  const frame = createVisualizationFrame({ container: host, html: HTML, className: "county-richness-page" });
+export function mountCountyChoropleth({ container: host, presentation = "standalone", store, data, geography, taxa, d3 = globalThis.d3, topojson = globalThis.topojson, sizing = {} }) {
+  const frame = createVisualizationFrame({ container: host, html: HTML, presentation, className: "county-richness-page" });
   const { elements } = frame;
   let disposed = false;
   const { loadCountyRichness } = data;
@@ -55,7 +55,7 @@ const period = { startYear: 2012, endYear: 2025 };
       if (disposed) return;
       const allCounties = topojson.feature(topology, topology.objects.counties);
       const states = geography.filter(row => row.region_level === "state" && Object.values(STATE_ABBREVIATIONS).includes(row.region_code.slice(3)));
-      chart = createCountyChoropleth({ d3, sizing,
+      chart = createCountyChoropleth({ d3, sizing, presentation,
         container: mapContainer,
         tooltip: elements["county-tooltip"],
         onCountySelect: countyCode => store.setShared({ countyCode })
@@ -123,7 +123,7 @@ const period = { startYear: 2012, endYear: 2025 };
   }
 
   const ready = initialize();
-  return { root: frame.root, ready, destroy() {
+  return { root: frame.root, controls: frame.controls, ready, destroy() {
     if (disposed) return; disposed = true;
     requestId++;
     unsubscribe?.();
