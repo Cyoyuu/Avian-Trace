@@ -1,4 +1,4 @@
-import { MAX_CANDIDATES } from "../charts/location-combinations-data.js";
+import { MAX_CANDIDATES } from "../visualizations/t4/location-combinations-data.js";
 
 let nextPickerId = 0;
 

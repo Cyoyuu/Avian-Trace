@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { CREATE_LOCATION_STAGING_SQL, READ_HOTSPOT_FILE_SQL, STAGE_HOTSPOTS_SQL, FINALIZE_LOCATIONS_SQL } from "../scripts/location-summary-build.js";
 import { createLocationQueries, validateCandidateIds } from "../backend/location-queries.js";
-import { buildLocationCombinations, sortLocationCombinations, pageLocationCombinations } from "../frontend/charts/location-combinations-data.js";
+import { buildLocationCombinations, sortLocationCombinations, pageLocationCombinations } from "../frontend/visualizations/t4/location-combinations-data.js";
 import { createFilterStore } from "../frontend/filters/filter-store.js";
 
 const location = (id, species, name = id) => ({ locality_id: id, locality_name: name, species_ids: species });

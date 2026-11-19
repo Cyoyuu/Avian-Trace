@@ -1,7 +1,7 @@
 import { combinationKey } from "./location-combinations-data.js";
 
 // Reuse the county bars' fixed Y-axis, scrollable X-axis and full-column interaction targets.
-export function createLocationCombinationChart({ container, tooltip, onSelect }) {
+export function createLocationCombinationChart({ d3 = globalThis.d3, sizing = {}, container, tooltip, onSelect }) {
   const root = d3.select(container).append("div").attr("class", "combination-chart");
   const fixed = root.append("svg").attr("class", "combination-chart__y").attr("aria-hidden", "true");
   const viewport = root.append("div").attr("class", "combination-chart__viewport").attr("tabindex", 0)
@@ -27,7 +27,7 @@ export function createLocationCombinationChart({ container, tooltip, onSelect })
     model = next; hide();
     const { rows, maximum, selectedIds } = model;
     const width = Math.max(600, viewport.node().clientWidth, rows.length * 125 + 40);
-    const top = 20, baseline = 350, bottom = 160;
+    const top = 20, baseline = sizing.plotHeight ?? 350, bottom = 160;
     svg.attr("width", width).attr("height", baseline + bottom);
     fixed.attr("width", 78).attr("height", baseline + bottom);
     svg.selectAll("*").remove(); fixed.selectAll("*").remove();
