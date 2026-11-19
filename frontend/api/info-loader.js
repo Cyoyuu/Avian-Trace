@@ -49,3 +49,11 @@ export function loadSpeciesHeatmap(regionCode, regionLevel, startYear, endYear, 
 export function loadHolidayObservations(countyCode, taxonId, startYear, endYear) {
   return fetchAPI("/api/holiday-observations", { countyCode, taxonId, startYear, endYear });
 }
+
+export function loadHotspots(countyCode, search = "", page = 1) {
+  return fetchAPI("/api/hotspots", { countyCode, search, page });
+}
+
+export function loadHotspotSpecies(countyCode, locationIds) {
+  return fetchAPI("/api/hotspot-species", { countyCode, locationIds: locationIds.join(",") });
+}

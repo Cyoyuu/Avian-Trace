@@ -29,7 +29,7 @@ It does not import charts, fetch data, generate combinations, or modify existing
     t2: { season: "all" },
     t2Heatmap: { speciesCount: 15, sortOrder: "total" },
     t3: {},
-    t4: { numberOfLocations: 3, sortOrder: "desc" }
+    t4: { candidateLocationIds: [], selectedCombinationIds: [], numberOfLocations: 3, sortOrder: "desc" }
   }
 }
 ~~~
@@ -47,15 +47,15 @@ A county requires a matching state. Changing or clearing state clears the county
 | T2 trends (`t2`) | State, county, species, start/end year | Season |
 | T2 heatmap (`t2Heatmap`) | State, county, start/end year | Species count, sorting |
 | T3 | State (county context), county, species, start/end year | None |
-| T4 | State, county | Locations per combination, sorting |
+| T4 | State, county | Candidate hotspot IDs, selected combination IDs, locations per combination, sorting |
 
-T1 uses stateCode as the statewide comparison context and countyCode solely to highlight an entry. A county selection does not replace or clear stateCode. Its future data loader must keep using the state for the comparison query.
-T3 uses state to narrow county choices; an unset county is an incomplete selection for the planned county comparison.
+T1 uses stateCode as the statewide comparison context and countyCode solely to highlight an entry. A county selection does not replace or clear stateCode. Both implemented T1 pages use the state for the comparison query.
+T3 uses state to narrow county choices; its implemented standalone chart requires a county and a single species before loading the comparison.
 
 Sorting values are alpha (alphabetical), asc (ascending), and desc (descending), separately stored for T1 and T4.
-Season belongs only to T2: all (Jan–Dec), spring (Mar–May), summer (Jun–Aug), fall (Sep–Nov), winter (Dec–Feb). Definitions expose numeric month sets. These describe calendar months; cross-year winter aggregation belongs to future chart/data work.
+Season belongs only to T2: all (Jan–Dec), spring (Mar–May), summer (Jun–Aug), fall (Sep–Nov), winter (Dec–Feb). Definitions expose numeric month sets. The implemented trends chart groups these months within each labeled calendar year: Winter combines January, February, and December of that year.
 
-T4 numberOfLocations defaults to 3 and accepts exactly the numbers 3, 4, or 5. It means exactly that many locations per combination within the selected county. A combination's richness is the count of distinct species in the union of its locations. The store imposes no candidate-count limit and contains no combination-generation algorithm.
+T4 numberOfLocations defaults to 3 and accepts exactly the numbers 3, 4, or 5. It means exactly that many locations per combination within the selected county. A combination's richness is the count of distinct species in the union of its locations. Candidate selection accepts at most 10 distinct locality IDs. Selected combinations contain exactly numberOfLocations IDs from those candidates. The store contains no combination-generation algorithm.
 
 ### Standalone use
 
@@ -153,8 +153,8 @@ Future visualization URLs will be added only when their pages are implemented.
 | T1 | County Richness Bar Chart | [County Richness Bar Chart](http://127.0.0.1:3000/county-richness-bar.html) | Implemented |
 | T2 | Observation Trends Line Chart | [Observation Trends](http://127.0.0.1:3000/observation-trends.html) | Implemented |
 | T2 | Seasonal Species Heatmap | [Seasonal Species Heatmap](http://127.0.0.1:3000/seasonal-species-heatmap.html) | Implemented |
-| T3 | Holiday Comparison Line Chart | [Holiday Observation Patterns](http://127.0.0.1:3000/holiday-observation-patterns.html) | Implemented |
-| T4 | Location Combination Bar Chart | — | Not implemented |
+| T3 | Holiday Observation Patterns (comparison line chart) | [Holiday Observation Patterns](http://127.0.0.1:3000/holiday-observation-patterns.html) | Implemented (Step 5, b41a613) |
+| T4 | Location Combination Bar Chart | [Hotspot Combination Species Coverage](http://127.0.0.1:3000/location-combinations.html) | Implemented |
 | T4 | UpSet Chart | — | Not implemented |
 
 ### T1 — County Choropleth
@@ -215,7 +215,7 @@ The standalone heatmap reuses species_region_month, the geography API, fetchAPI/
 
 ### T3 — Holiday Observation Patterns
 
-The standalone chart adapts the existing holiday example's yearly scales, grid, dual-line rendering, legend, and blue/orange palette. It uses the existing t3 standalone filter definitions, geography and taxon loaders, and shared county/species/year subscriptions. State narrows county choices; a county and single species are required. T2 season and heatmap controls do not affect this view. No filter-store or definition changes are needed. The original holiday-test page and /api/holiday-comparison behavior are preserved. The existing read-only holiday connection is exposed for reuse by the new /api/holiday-observations endpoint.
+Step 5 was implemented in commit b41a613. The page title is Holiday Observation Patterns, and its implemented URL/status are recorded in the centralized table above. The standalone chart adapts the existing holiday example's yearly scales, grid, dual-line rendering, legend, and blue/orange palette. It uses the existing t3 standalone filter definitions, geography and taxon loaders, and shared county/species/year subscriptions. State narrows county choices; a county and single species are required. T2 season and heatmap controls do not affect this view. No filter-store or definition changes are needed. The original holiday-test page and /api/holiday-comparison behavior are preserved. The existing read-only holiday connection is exposed for reuse by the new /api/holiday-observations endpoint.
 
 **Verified record semantics:** build_daily_summaries.py stores observation_rows as COUNT(*) of production species-category observation rows, including records with unknown reported bird counts. These are not SUM(count_raw), unique checklists, or population estimates; observer/group reports are not additionally deduplicated. Before implementing this view, all 998 production filenames were matched to daily_processed_files markers. A raw Parquet sample's 245 records and 531 reported birds matched its staging counts, confirming the distinction. Middlesex/Northern Cardinal daily annual record totals also matched the main annual summaries for every year 2012–2025. The new calculation never uses avg_daily_birds or reported_birds.
 
@@ -232,3 +232,31 @@ The endpoint accepts countyCode, taxonId, startYear, and endYear and returns bot
 **Interactions and rendering:** X is calendar year; Y is average daily observation records. Holidays is an orange solid line and Non-holidays is blue/dashed. Hovering or focusing either yearly point shows year, both averages, both observation totals, and both day counts; Escape dismisses the tooltip. Single-year and all-zero series remain inspectable, including overlapping zero points. Relevant filter changes reload the comparison, and request IDs prevent stale responses from replacing current selections. Invalid ranges retain the committed state. Narrow screens scroll horizontally to preserve year labels.
 
 **Verification and limitations:** tests cover duplicate actual dates, observed-only dates, leap/non-leap denominators, different holiday dates/counts, disjoint record groups, zero records, missing calendar/processing metadata, null summaries, annual disagreement, and inconsistent totals. Independent database queries verify selected county/species/year results, and a direct raw-record sample verifies observation semantics. Browser checks cover both lines, legends, complete tooltips, county/species/year changes, zero/single-year series, missing-data gaps, mobile rendering, and the original holiday example. The available complete-year range is 2012–2025. Calendar definitions are exactly those stored in the existing calendar; this view does not add regional holidays or substitute observed dates. These rates describe reporting activity per calendar day, without effort adjustment. D3 follows the existing CDN convention. No dashboard is implemented.
+
+
+### T4 — Hotspot Combination Species Coverage
+
+**Eligibility and access:** include only production records with locality_type = H, category = species, a canonical species taxon ID, a known county code, a valid stable locality ID, and an observation date from 2012-01-01 through 2025-12-31. Personal (P), town (T), postal-code (PC), county (C), state (S), null, and unknown locality types are excluded. Names are display labels, never identity keys; duplicate names remain separate locations. The catalog uses the lexicographically smallest nonempty name recorded for each county/locality ID during the coverage period, falling back to the ID.
+
+Hotspot status does **not** guarantee public accessibility. H includes private and restricted-access hotspots; these remain eligible under the approved hotspot-only policy. The page displays an access notice asking visitors to check current rules and obtain any required permission. The dataset has no access-status field, and name-based exclusions cannot establish public access. See the [eBird Hotspot FAQs](https://support.ebird.org/en/support/solutions/articles/48001009443-ebird-hotspot-faqs) and [Hotspot access documentation](https://support.ebird.org/en/support/solutions/articles/48001281732-ebird-hotspot-about-pages). This is recorded species coverage at eBird hotspot IDs, not an inventory of publicly accessible birdwatching sites.
+
+**Offline preparation:** from the repository root, run:
+
+~~~sh
+node scripts/build_location_summaries.js
+npm start
+~~~
+
+The builder uses the existing @duckdb/node-api dependency and reads all production Parquet files outside HTTP requests. It stages unique county/locality/taxon memberships per file, commits each file with its size/mtime marker, then deduplicates across files and produces the catalog. The final tables are ordered by county/locality for selective reads. A completed source manifest and metadata record declare fixed 2012–2025/H coverage. It rechecks source identities before publishing database/ebird_locations.duckdb by renaming the closed staging database. Interrupted staging resumes with the same command; changed or removed processed source files are rejected. Preparation uses four threads, a 4 GB DuckDB memory limit, and ignored database/duckdb_temp spill space. Large source scans and intermediate storage are expected. Generated databases are ignored by Git.
+
+The existing serving databases and their build scripts are unchanged. The new API opens the location database read-only and rejects absent/incomplete/incompatible snapshots with HTTP 503; the page explains how to prepare it. An existing final database is never overwritten automatically. For a new source release, stop the server and explicitly move the previous output aside before rebuilding. An active browser retries location loading with Search; restart the server after replacing an already-open snapshot.
+
+**Candidate controls and state:** the existing standalone t4 header renders state, county, locations per combination (3/4/5, default 3), and sorting (alphabetical/ascending/descending, default descending). State narrows county choices. A separate labeled component below the header searches hotspot names or locality IDs within that county, 50 locations per result page, and shows individual recorded richness. It starts with no selected candidates, supports removal, retains choices across searches/pages, and disables additional choices at 10. Candidate count is independent of combination size; fewer candidates than that size show guidance. T4 uses fixed 2012–2025 coverage and ignores shared year/species and T2 season changes.
+
+The existing store is extended with charts.t4.candidateLocationIds and charts.t4.selectedCombinationIds, both immutable canonical ID arrays. Generic location-ID validation and array-content change detection preserve silent equivalent updates. Definitions with control: null participate in state/subscriptions but are omitted from header rendering in every scope. County changes atomically clear candidates and the selected combination. Candidate or combination-size changes clear selections that are no longer valid; sorting retains selection. The selected IDs are ready for an injected future UpSet subscriber on the same store; no second shared-filter store, cross-page synchronization, UpSet chart, or dashboard is introduced.
+
+**API and calculations:** /api/hotspots accepts countyCode, search, and page, returning a catalog page and matching count. /api/hotspot-species accepts countyCode and 1–10 distinct locationIds; every requested ID must belong to that county snapshot. Both use parameterized queries. The browser fetches memberships when candidates change and reuses them for size/sort changes. For each unordered subset of exactly k candidate IDs, richness = size of the union of its taxon-ID sets. Repeated species within or across hotspots count once. All eligible combinations are enumerated before deterministic sorting and pagination. Ten candidates produce 120 size-3, 210 size-4, or 252 size-5 combinations.
+
+**Interactions and rendering:** X is the combination of hotspot names; Y is distinct recorded species. The vertical bars adapt the existing county chart approach: fixed Y-axis, horizontal scrolling, full-column hit targets, keyboard selection, and readable space per combination. Display pages contain at most 50 combinations and share a Y scale based on the global maximum. Each name gets a separate shortened label line; hover/focus tooltips and selected-combination details expose full names and stable IDs. Orange marks every tied global maximum independently of sorting/page. A dark outline marks the selected combination. Click, Enter, or Space selects; Escape dismisses tooltips. Rapid county/candidate changes discard stale results.
+
+**Verification and limitations:** fixture tests cover H-only eligibility (including restricted H hotspots), date/taxonomy/geography exclusions, duplicate names and records, cross-file deduplication, exact overlapping/disjoint unions, zero-species inputs, deterministic sorts/ties, 3/4/5 sizes, 10-candidate limits, 50-row pages, immutable/no-op updates, selection invalidation, and unrelated subscriptions. The completed production snapshot contains 153,966 county/hotspot entries and 13,728,170 memberships from all 998 files; its generated database occupies approximately 5.18 GB including staging-era reusable storage. Independent raw-Parquet COUNT(DISTINCT taxon_id) queries matched all 582 combinations for ten selected Middlesex County hotspots (120 size-3, 210 size-4, and 252 size-5). Browser checks cover candidate search/paging/removal/limits, all sizes/sorts, global maximum highlighting, selection, full tooltips, county resets, missing-summary feedback, and narrow screens. Richness reflects reporting history and current taxonomy; it is not adjusted for effort, hotspot boundaries can overlap, and access conditions may change. D3 follows the existing CDN convention.

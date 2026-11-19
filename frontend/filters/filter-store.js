@@ -48,6 +48,8 @@ export function createFilterStore({ yearBounds = { min: 2012, max: 2025 } } = {}
     if (definition.type === "county" && typeof value === "string" && /^US-[A-Z]{2}-\d{3}$/.test(value)) return;
     if (definition.type === "taxon" && typeof value === "string" && value.trim().length > 0) return;
     if (definition.type === "integer" && Number.isInteger(value) && value >= min && value <= max) return;
+    if (definition.type === "locationIds" && Array.isArray(value) && value.length <= definition.maxItems &&
+        value.every(id => typeof id === "string" && /^L[0-9]+$/.test(id)) && new Set(value).size === value.length) return;
     if (definition.type === "enum" && definition.options.some(option => option.value === value)) return;
     throw new Error("Invalid value for " + key);
   }
@@ -68,7 +70,13 @@ export function createFilterStore({ yearBounds = { min: 2012, max: 2025 } } = {}
   const notifications = [];
   let notifying = false;
   function commit(next) {
-    const changedKeys = [...paths].filter(path => readPath(state, path) !== readPath(next, path));
+    const changedKeys = [...paths].filter(path => {
+      const before = readPath(state, path);
+      const after = readPath(next, path);
+      return Array.isArray(before) && Array.isArray(after)
+        ? before.length !== after.length || before.some((value, index) => value !== after[index])
+        : before !== after;
+    });
     if (!changedKeys.length) return;
     state = next;
     notifications.push({ state: snapshot(state), changedKeys: Object.freeze(changedKeys), subscribers: [...listeners] });
@@ -114,12 +122,27 @@ export function createFilterStore({ yearBounds = { min: 2012, max: 2025 } } = {}
         throw new Error("County must belong to the selected state");
       }
       if (shared.startYear > shared.endYear) throw new Error("Start year must not exceed end year");
-      commit({ ...state, shared });
+      const charts = shared.countyCode !== state.shared.countyCode
+        ? { ...state.charts, t4: { ...state.charts.t4, candidateLocationIds: [], selectedCombinationIds: [] } }
+        : state.charts;
+      commit({ ...state, shared, charts });
     },
     setChart(chartId, patch) {
       assertChart(chartId);
       validatePatch(patch, CHART_FILTER_DEFINITIONS[chartId]);
-      commit({ ...state, charts: { ...state.charts, [chartId]: { ...state.charts[chartId], ...patch } } });
+      const local = structuredClone({ ...state.charts[chartId], ...patch });
+      if (chartId === "t4") {
+        local.candidateLocationIds.sort();
+        local.selectedCombinationIds.sort();
+        if (local.candidateLocationIds.length && !state.shared.countyCode) throw new Error("Select a county before candidates");
+        const validSelection = local.selectedCombinationIds.length === local.numberOfLocations &&
+          local.selectedCombinationIds.every(id => local.candidateLocationIds.includes(id));
+        if (local.selectedCombinationIds.length && !validSelection) {
+          if (Object.hasOwn(patch, "selectedCombinationIds")) throw new Error("Invalid selected combination");
+          local.selectedCombinationIds = [];
+        }
+      }
+      commit({ ...state, charts: { ...state.charts, [chartId]: local } });
     },
     /** Subscribe by task or explicit scoped paths. Returns an unsubscribe function. */
     subscribe({ chartId, keys } = {}, callback) {

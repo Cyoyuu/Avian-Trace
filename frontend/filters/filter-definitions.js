@@ -50,6 +50,8 @@ export const CHART_FILTER_DEFINITIONS = freeze({
   },
   t3: {},
   t4: {
+    candidateLocationIds: { label: "Candidate hotspots", maxItems: 10, type: "locationIds", control: null, default: [] },
+    selectedCombinationIds: { label: "Selected combination", maxItems: 5, type: "locationIds", control: null, default: [] },
     numberOfLocations: {
       label: "Locations per combination", type: "enum", control: "select", default: 3,
       options: [3, 4, 5].map(value => ({ value, label: String(value) }))

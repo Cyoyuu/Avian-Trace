@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avian Trace — Hotspot Combination Species Coverage</title>
+  <link rel="stylesheet" href="components/filter-header.css">
+  <link rel="stylesheet" href="location-combinations.css">
+</head>
+<body class="location-combinations-page">
+<main>
+  <h1>Hotspot Combination Species Coverage</h1>
+  <p>Compare distinct species recorded across combinations of exactly 3, 4, or 5 selected eBird hotspots. Coverage: 2012–2025.</p>
+  <aside class="access-notice"><strong>Access notice:</strong> eBird hotspot status does not guarantee public accessibility. Included hotspots may be private or restricted. Check current access rules and obtain any required permission before visiting.</aside>
+  <div id="filters" aria-label="Hotspot combination filters"></div>
+  <section aria-labelledby="candidate-title">
+    <h2 id="candidate-title">Choose candidate hotspots</h2>
+    <p>Select up to 10 locations within one county. Candidate count is separate from locations per combination. No candidates are selected automatically.</p>
+    <div id="hotspot-picker"></div>
+  </section>
+  <section aria-labelledby="combination-title">
+    <h2 id="combination-title">Combination richness</h2>
+    <p id="combination-status" role="status" aria-live="polite">Loading county choices…</p>
+    <p><span class="best-swatch" aria-hidden="true"></span> Orange: greatest richness across all combinations, including ties. Outlined: selected combination.</p>
+    <div class="combination-pages"><button id="previous-combinations" type="button" disabled>Previous combinations</button><span id="combination-page"></span><button id="next-combinations" type="button" disabled>Next combinations</button></div>
+    <div id="combination-chart" aria-busy="false"></div>
+    <div id="selected-combination" aria-live="polite">Select a bar to inspect its complete location names and IDs.</div>
+    <p>All combinations are calculated before sorting and pagination (50 per page). Hover or focus a bar for full names and richness; click, Enter, or Space selects it. Scroll horizontally to explore the current page.</p>
+    <p>Richness counts distinct species across the union of locations, counting each species once. It reflects recorded coverage, not population size or equal observation effort. Shared species, year-range, and season selections do not restrict T4.</p>
+  </section>
+</main>
+<div id="combination-tooltip" role="tooltip" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script type="module" src="location-combinations.js"></script>
+</body>
+</html>

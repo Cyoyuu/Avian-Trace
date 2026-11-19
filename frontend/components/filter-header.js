@@ -9,7 +9,7 @@ let nextHeaderId = 0;
 export function createFilterHeader({ container, store, chartId, scope = "all", options = {} }) {
   const target = typeof container === "string" ? document.querySelector(container) : container;
   if (!target) throw new Error("Filter header container was not found");
-  const entries = getFilterEntries({ chartId, scope });
+  const entries = getFilterEntries({ chartId, scope }).filter(entry => entry.definition.control !== null);
   const root = document.createElement("div");
   root.className = "filter-header";
   const controls = new Map();

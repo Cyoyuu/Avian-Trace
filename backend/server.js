@@ -1,3 +1,4 @@
+import { registerLocationRoutes } from "./location-queries.js";
 import { getHolidayObservations } from "./holiday-observations.js";
 import express from "express";
 import path from "node:path";
@@ -157,6 +158,7 @@ app.get("/api/holiday-observations", endpoint((req, filters) => getHolidayObserv
 )));
 
 registerHolidayRoutes(app);
+registerLocationRoutes(app);
 
 app.listen(PORT, HOST, () => {
   console.log(`eBird API running at http://${HOST}:${PORT}`);
