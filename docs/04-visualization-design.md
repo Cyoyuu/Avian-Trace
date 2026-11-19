@@ -1,5 +1,100 @@
 # Visualization Design
 
+## Frontend composition and reusable views
+
+Each visualization has one reusable mounted view, used by its existing standalone page and available to a future composition with an injected shared store. There are no separate standalone/dashboard chart implementations. The refactor preserves the existing chart appearance, defaults, calculations, APIs, filter semantics, and HTML page URLs. It introduces neither a dashboard nor compact mode.
+
+### Directory ownership
+
+~~~text
+frontend/
+  *.html                         existing standalone and legacy page URLs
+  pages/                         thin standalone initializers, using existing filenames
+    county-choropleth.js
+    county-richness-bar.js
+    observation-trends.js
+    seasonal-species-heatmap.js
+    holiday-observation-patterns.js
+    location-combinations.js
+    hotspot-species-overlap.js
+  visualizations/
+    t1/
+      county-choropleth-view.js, county-choropleth.js, county-choropleth-data.js
+      county-richness-bar-view.js, county-richness-bar.js, county-richness-bar-data.js
+      county-choropleth.css, county-richness-bar.css
+    t2/
+      observation-trends-view.js, observation-trends-chart.js, observation-trends-data.js
+      seasonal-species-heatmap-view.js, species-heatmap.js, species-heatmap-data.js
+      observation-trends.css, seasonal-species-heatmap.css
+    t3/
+      holiday-observation-patterns-view.js, holiday-observations-chart.js
+      holiday-observations-data.js, holiday-observation-patterns.css
+    t4/
+      location-combinations-view.js, location-combinations-chart.js, location-combinations-data.js
+      hotspot-species-overlap-view.js, hotspot-overlap-chart.js, hotspot-overlap-data.js
+      hotspot-overlap-selection.js, hotspot-common.css
+      location-combinations.css, hotspot-species-overlap.css
+  api/
+    api.js, info-loader.js, taxon-converter.js
+  components/
+    filter-header.js, filter-header.css
+    hotspot-picker.js, hotspot-picker.css
+    visualization-frame.js, visualization-frame.css
+  filters/
+    filter-store.js, filter-definitions.js
+  helpers/
+    filter-options.js, geographic-codes.js, location-converter.js
+    taxon-converter.js            compatibility re-export for the legacy map
+    ...                          other existing legacy helpers
+  styles/standalone.css          page-shell layout and headings
+  charts/                        legacy task1/task2 renderers and shared constants
+~~~
+
+Rendering factories only render supplied models and expose their existing render/clear/destroy methods. The data modules retain pure transformations. Network access remains in api/ and is supplied to views through the data object. The choropleth additionally receives data.loadCountyGeometry; TopoJSON conversion and geometry matching retain their existing behavior. Geography and optional taxon-name Maps are supplied as lookups, rather than loaded or globally managed by the view. filter-options.js maps those lookups to header choices without owning state or fetching.
+
+### Mounted view contract
+
+The exports are mountCountyChoropleth, mountCountyRichnessBar, mountObservationTrends, mountSeasonalSpeciesHeatmap, mountHolidayObservationPatterns, mountLocationCombinations, and mountHotspotSpeciesOverlap. Their common interface is:
+
+~~~js
+import { mountCountyRichnessBar } from "./visualizations/t1/county-richness-bar-view.js";
+import * as data from "./api/info-loader.js";
+
+const view = mountCountyRichnessBar({
+  container,                  // a caller-owned HTMLElement
+  store,                      // an existing createFilterStore() instance
+  data,                       // existing API loaders; injectable for tests/composition
+  geography,                  // geographic options already loaded by the caller
+  d3,                         // existing D3 library, also defaults to globalThis.d3
+  sizing: {}                  // optional renderer-specific sizing; existing defaults retained
+});
+await view.ready;             // initial initialization/update has settled
+view.destroy();              // immediate and idempotent
+~~~
+
+A view creates only its own subtree, subscribes to relevant store paths, and owns its loading/status, coverage, selection, tooltip, and chart-specific controls. It neither creates a filter store nor searches the standalone document for chart elements. root exposes the owned DOM subtree; destroy removes that subtree without clearing unrelated content in the supplied container. The visualization-frame helper only creates scoped supporting markup, indexes elements by role, and assigns instance-specific IDs/accessibility references. It is not a chart framework and contains no data or filter policy.
+
+ready represents the initial update, not every subsequent store change. Destruction unsubscribes, invalidates pending request versions, disconnects renderer resize observers, removes owned controls/listeners, and prevents late success or failure from recreating or updating DOM. The choropleth also checks destruction after pending geometry initialization. In-flight network/database work is not aborted; its results are ignored after destruction. Repeated destruction is safe.
+
+The existing responsive width behavior and minimum-width scrolling remain. Sizing overrides preserve defaults: the county bars and T4 bars accept sizing.plotHeight, the line charts and map accept sizing.height, and UpSet accepts sizing.plotHeight/rowHeight. Heatmap height follows its displayed row count. No automatic compact layout is applied.
+
+### Standalone versus future composition
+
+Each pages/ initializer creates its standalone store, loads lookups, creates the reusable header in all/standalone scope, and mounts the corresponding view. Page-specific introduction/access text and page-shell layout remain outside the mounted chart. The initializer owns pagehide handling and stops initialization safely if the page disappears while lookups are loading. A future host supplies the same store to several mount functions, creates one shared-scope header, and renders local-scope controls as appropriate. The view functions and renderers are unchanged between those contexts; no global store or manual synchronization is required.
+
+Only pages/hotspot-species-overlap.js reads location.search or writes browser history. It parses and validates link selections, checks the membership API, then supplies accepted store state/initialRows or an initialMessage to the reusable UpSet view. The view emits optional onSelectionChange notifications instead of changing a browser URL. The combination view preserves its existing standalone exploration link; an optional onExploreOverlap callback lets a host handle that action without navigation.
+
+T4's standalone behavior is retained: combination bars use up to ten candidate IDs, while standalone UpSet compares up to five candidates. UpSet additionally accepts a selection binding with getIds and scoped store keys; an optional setIds enables its picker. A host can bind it to charts.t4.selectedCombinationIds while the bar chart retains the larger candidate pool. A read-only binding omits the redundant picker. This is an input interface, not a dashboard implementation or a change to store validation.
+
+The existing legacy us-map.html, holiday-test.html, and test.html files remain in place. charts/task2-chart.js retains renderSpeciesTrendChart for the legacy map; the newer factory lives in visualizations/t2/observation-trends-chart.js. The old helper taxon-converter.js forwards to the relocated API loader. Legacy map and holiday rendering were checked. test.html currently reports no valid data because its unchanged request uses obsolete parameter names (region/taxon_id/from/to); the same request returns zero rows while the canonical existing API parameters return 14. Both its script and the backend are unchanged from the pre-refactor commit. That pre-existing example issue is outside this structural refactor.
+
+### Refactor regression checks
+
+npm test retains the original 43 calculation/state tests and adds filter-option, browser-free view-import, unchanged-page-path and relative-import checks (47 tests total). Calculations and API contracts are unchanged. For real-DOM lifecycle checks, start npm start, then run node tests/browser/server.js in another terminal and open /view-lifecycle.html on that test server's port 3001. This test-only server is not an application dashboard or a production route.
+
+The browser harness mounts every view repeatedly at different widths, resizes mounted containers, destroys views during pending successful/failed requests, destroys a map during geometry initialization, checks unsubscription and stale DOM writes, mounts all seven with one store, checks unique IDs and CSS appearance isolation, verifies relevant-filter notifications and county highlighting/reset, and exercises the T4 selected-combination input binding. Standalone pages retain their existing appearance and interactions. Frontend structural documentation stays here; the database/geography documents retain their separate domain responsibilities. The centralized URL table below remains the only visualization URL inventory.
+
+
 ## Reusable filtering
 
 The filter infrastructure uses browser ES modules and has no added dependencies.
@@ -119,7 +214,7 @@ Each visualization subscribes by chartId to the same store. Do not create a seco
 - Notifications are synchronous. Nested updates are queued so all subscribers receive transaction snapshots in order. Listener failures do not prevent delivery to others; setters throw an AggregateError after delivery, with state already committed. Keep data-loading errors inside the visualization's own handler.
 
 The default year bounds are 2012–2025, matching existing complete-year controls. To use another known available range, createFilterStore({ yearBounds: { min: 2012, max: 2026 } }); both initial years and number controls follow those bounds. This does not change backend capabilities.
-Future chart adapters will translate canonical values to their endpoints. In particular, the current holiday API takes common names and different parameter names and does not implement these year/season controls; existing routes are intentionally unchanged.
+Mounted views translate canonical filters through the existing API helpers. The original holiday example route still accepts its legacy common-name parameters; the standalone holiday view uses the separate existing /api/holiday-observations endpoint. Neither API contract changes during composition.
 
 ### Run and verify
 
@@ -156,7 +251,7 @@ Future visualization URLs will be added only when their pages are implemented.
 | T2 | Seasonal Species Heatmap | [Seasonal Species Heatmap](http://127.0.0.1:3000/seasonal-species-heatmap.html) | Implemented | `5b2d7e4` |
 | T3 | Holiday Observation Patterns (comparison line chart) | [Holiday Observation Patterns](http://127.0.0.1:3000/holiday-observation-patterns.html) | Implemented | `b41a613` |
 | T4 | Location Combination Bar Chart | [Hotspot Combination Species Coverage](http://127.0.0.1:3000/location-combinations.html) | Implemented | `bd0f0b5` |
-| T4 | Hotspot Species Overlap (UpSet Chart) | [Hotspot Species Overlap](http://127.0.0.1:3000/hotspot-species-overlap.html) | Implemented | Step 7 (this commit) |
+| T4 | Hotspot Species Overlap (UpSet Chart) | [Hotspot Species Overlap](http://127.0.0.1:3000/hotspot-species-overlap.html) | Implemented | `4dde427` |
 
 ### T1 — County Choropleth
 
@@ -188,7 +283,7 @@ The standalone vertical bar chart adapts the existing task1-chart.js keyed joins
 
 ### T2 — Long-Term Observation Trends
 
-The standalone page uses the existing t2 filter definition, store, header, taxon-name loader, geography API, loadSpeciesTrend helper, and /api/species-trend endpoint. The existing task2-chart.js module now also exports createObservationTrendsChart, a responsive adaptation of its yearly line/point rendering using the existing margins and colors. The original renderSpeciesTrendChart export and annual API behavior remain available for existing pages.
+The standalone page uses the existing t2 filter definition, store, header, taxon-name loader, geography API, loadSpeciesTrend helper, and /api/species-trend endpoint. The visualizations/t2/observation-trends-chart.js module exports createObservationTrendsChart, a responsive adaptation of its yearly line/point rendering using the existing margins and colors. The original renderSpeciesTrendChart export and annual API behavior remain available for existing pages.
 
 **Filters:** standalone mode renders shared stateCode, countyCode, taxonId, startYear, and endYear, plus local charts.t2.season. A county narrows the geographic query; clearing it returns to the selected state. Changing state clears county through the store's existing rule. Species remains a single taxon ID. The default range is 2012–2025, inclusive. Season is T2-specific and uses the existing definitions directly: All = months 1–12, Spring = 3–5, Summer = 6–8, Fall = 9–11, Winter = 12/1/2. Winter totals combine January, February, and December within the same labeled calendar year, not a December-to-February season spanning two years. Season changes do not notify T3 or T1.
 
