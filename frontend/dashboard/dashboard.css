@@ -20,3 +20,8 @@ html:has(body.dashboard-page), body.dashboard-page { height:100%; margin:0; over
 .dashboard-page :focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
 .dashboard-page > main > p { padding:16px; }
 @media(max-width:1500px) { .dashboard-subtitle { display:none; } .dashboard-guidance { max-width:360px; } }
+
+/* Selection stays in the store; reserve the bounding outline for keyboard focus. */
+.dashboard-page .combination-chart__combination[aria-pressed="true"] .combination-chart__bar,
+.dashboard-page .combination-chart__combination:focus:not(:focus-visible) .combination-chart__target { stroke:none; }
+.dashboard-page .combination-chart__combination:focus:not(:focus-visible) { outline:none; }
