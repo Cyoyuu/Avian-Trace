@@ -49,6 +49,7 @@ export const CHART_FILTER_DEFINITIONS = freeze({
     }
   },
   t3: {},
+  t4UpSet: {},
   t4: {
     candidateLocationIds: { label: "Candidate hotspots", maxItems: 10, type: "locationIds", control: null, default: [] },
     selectedCombinationIds: { label: "Selected combination", maxItems: 5, type: "locationIds", control: null, default: [] },
@@ -82,6 +83,7 @@ export const TASK_DEFINITIONS = freeze({
     sharedFilters: ["stateCode", "countyCode", "taxonId", "startYear", "endYear"],
     filterRoles: { stateCode: "countyContext", countyCode: "selection" }
   },
+  t4UpSet: { label: "Hotspot Species Overlap", sharedFilters: ["stateCode", "countyCode"] },
   t4: { label: "Multi-Location Species Coverage", sharedFilters: ["stateCode", "countyCode"] }
 });
 

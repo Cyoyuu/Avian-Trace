@@ -1,0 +1,26 @@
+.upset-chart { display:flex; max-width:100%; background:#fff; }
+.upset-chart__labels { flex:0 0 280px; width:280px; }
+.upset-chart__viewport { min-width:0; flex:1; overflow-x:auto; }
+.upset-chart svg { display:block; font:12px system-ui,sans-serif; }
+.upset-chart__heading { font-weight:700; }
+.upset-chart__id { fill:#4b6072; font-size:11px; }
+.upset-chart__grid line { stroke:#dae4eb; }
+.upset-chart__grid .domain { display:none; }
+.upset-chart__column { cursor:pointer; }
+.upset-chart__target { fill:transparent; }
+.upset-chart__bar { fill:#377ca8; }
+.upset-chart__dot { fill:#dce3e9; stroke:#aab8c3; stroke-width:1px; }
+.upset-chart__dot.is-member { fill:#245475; stroke:#173d58; }
+.upset-chart__connection { stroke:#245475; stroke-width:3px; }
+.upset-chart__column.is-selected .upset-chart__target { fill:#e89b2820; stroke:#a45708; stroke-width:2px; }
+.upset-chart__column.is-selected .upset-chart__bar { fill:#cb681c; stroke:#63300d; stroke-width:2px; }
+.upset-chart__column.is-selected .is-member { fill:#b15b16; stroke:#63300d; stroke-width:2px; }
+.upset-chart__column.is-selected .upset-chart__connection { stroke:#b15b16; }
+.upset-chart__column:focus .upset-chart__target { stroke:#132f65; stroke-width:3px; }
+.upset-chart__count { font-weight:600; }
+.overlap-total { font-size:19px; font-weight:650; color:#204d72; }
+#overlap-selection { background:#e8f0f6; padding:12px; margin-top:12px; overflow-wrap:anywhere; }
+#overlap-hotspots { overflow-wrap:anywhere; }
+#selection-message { background:#fff1d8; border-left:4px solid #a45708; padding:10px; }
+#overlap-tooltip { position:fixed; z-index:10; background:#fff; border:1px solid #9cabb5; border-radius:5px; box-shadow:0 3px 12px #0003; padding:10px; max-width:min(480px,calc(100vw - 40px)); max-height:calc(100vh - 40px); overflow:auto; overflow-wrap:anywhere; pointer-events:none; font:14px/1.45 system-ui,sans-serif; }
+@media(max-width:600px) { .upset-chart { overflow-x:auto; } .upset-chart__viewport { flex:0 0 auto; min-width:360px; overflow-x:visible; } }

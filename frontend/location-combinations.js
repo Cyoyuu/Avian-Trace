@@ -1,3 +1,4 @@
+import { hotspotOverlapUrl } from "./helpers/hotspot-overlap-selection.js";
 import { createFilterStore } from "./filters/filter-store.js";
 import { createFilterHeader } from "./components/filter-header.js";
 import { createHotspotPicker } from "./components/hotspot-picker.js";
@@ -34,7 +35,10 @@ function render() {
     title.textContent = "Selected combination: " + selected.richness + " distinct species (2012–2025)";
     const list = document.createElement("ul");
     selected.locations.forEach(location => { const item = document.createElement("li"); item.textContent = location.name + " [" + location.id + "]"; list.append(item); });
-    details.append(title, list);
+    const overlapLink = document.createElement("a");
+    overlapLink.textContent = "Explore this combination in the UpSet chart";
+    overlapLink.href = hotspotOverlapUrl({ stateCode: filters.stateCode, countyCode: filters.countyCode, locationIds: selected.locationIds });
+    details.append(title, list, overlapLink);
   } else details.textContent = "Select a bar to inspect its complete location names and IDs.";
   if (!combinations.length) { chart.clear(); return; }
   chart.render({ rows: result.rows, maximum: Math.max(...combinations.map(row => row.richness)), selectedIds: filters.selectedCombinationIds });

@@ -1,7 +1,8 @@
 import { MAX_CANDIDATES } from "../charts/location-combinations-data.js";
 
 /** A T4 control bound to the injected store, independent of the bar renderer. */
-export function createHotspotPicker({ container, store, loadLocations }) {
+export function createHotspotPicker({ container, store, loadLocations, maxCandidates = MAX_CANDIDATES }) {
+  if (!Number.isInteger(maxCandidates) || maxCandidates < 1 || maxCandidates > MAX_CANDIDATES) throw new Error("Invalid candidate limit");
   const form = document.createElement("form");
   form.className = "hotspot-picker";
   form.innerHTML = '<label for="hotspot-search">Find candidate hotspots by name or ID</label><div class="hotspot-picker__search"><input id="hotspot-search" type="search" maxlength="100" autocomplete="off"><button type="submit">Search</button></div><p class="hotspot-picker__status" role="status"></p><ul class="hotspot-picker__selected" aria-label="Selected candidate hotspots"></ul><div class="hotspot-picker__results" aria-label="Hotspot search results"></div><div class="hotspot-picker__pages"><button type="button" data-action="previous">Previous locations</button><span></span><button type="button" data-action="next">Next locations</button></div>';
@@ -40,13 +41,13 @@ export function createHotspotPicker({ container, store, loadLocations }) {
       checkbox.type = "checkbox";
       checkbox.value = row.locality_id;
       checkbox.checked = ids.includes(row.locality_id);
-      checkbox.disabled = busy || (!checkbox.checked && ids.length >= MAX_CANDIDATES);
+      checkbox.disabled = busy || (!checkbox.checked && ids.length >= maxCandidates);
       const text = document.createElement("span");
       text.textContent = row.locality_name + " [" + row.locality_id + "] · " + row.species_richness + " species";
       checkbox.addEventListener("change", () => {
         const current = store.getFilters("t4").candidateLocationIds;
         const updated = checkbox.checked ? [...current, row.locality_id] : current.filter(id => id !== row.locality_id);
-        if (updated.length <= MAX_CANDIDATES) store.setChart("t4", { candidateLocationIds: updated });
+        if (updated.length <= maxCandidates) store.setChart("t4", { candidateLocationIds: updated });
       });
       label.append(checkbox, text);
       return label;
@@ -58,7 +59,7 @@ export function createHotspotPicker({ container, store, loadLocations }) {
     form.querySelector('[type="submit"]').disabled = busy || !county;
     pageLabel.textContent = county && !busy ? "Page " + page + " of " + Math.max(1, Math.ceil(total / 50)) : "";
     if (!busy) status.textContent = county
-      ? ids.length + "/10 candidates selected · " + total + " matching hotspots. " + (total ? "Select candidates below." : "No matching hotspots.")
+      ? ids.length + "/" + maxCandidates + " candidates selected · " + total + " matching hotspots. " + (total ? "Select candidates below." : "No matching hotspots.")
       : "Select a county to find hotspots.";
   }
 
@@ -89,5 +90,7 @@ export function createHotspotPicker({ container, store, loadLocations }) {
   });
   county = store.getFilters("t4").countyCode;
   load();
-  return { destroy() { request++; unsubscribe(); form.remove(); } };
+  return {
+    setLabels(locations) { locations.forEach(row => labels.set(row.locality_id, row.locality_name)); draw(); },
+    destroy() { request++; unsubscribe(); form.remove(); } };
 }
