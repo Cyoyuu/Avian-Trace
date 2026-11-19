@@ -37,90 +37,90 @@ export function mountHotspotSpeciesOverlap({ container: host, store, data, d3 = 
     keys: ["charts.t4.candidateLocationIds"]
   };
 
-const status = elements["overlap-status"];
-const total = elements["overlap-total"];
-const details = elements["overlap-selection"];
-const message = elements["selection-message"];
-const container = elements["overlap-chart"];
-const locationList = elements["overlap-hotspots"];
-let picker, chart, unsubscribe;
-let request = 0;
-let cacheKey = initialRows.length ? store.getFilters("t4").countyCode + ":" + selectionSource.getIds().join(",") : "";
-let cachedRows = initialRows;
-let model;
-let selectedMask = null;
+  const status = elements["overlap-status"];
+  const total = elements["overlap-total"];
+  const details = elements["overlap-selection"];
+  const message = elements["selection-message"];
+  const container = elements["overlap-chart"];
+  const locationList = elements["overlap-hotspots"];
+  let picker, chart, unsubscribe;
+  let request = 0;
+  let cacheKey = initialRows.length ? store.getFilters("t4").countyCode + ":" + selectionSource.getIds().join(",") : "";
+  let cachedRows = initialRows;
+  let model;
+  let selectedMask = null;
 
-function renderSelection() {
-  const row = model?.intersections.find(intersection => intersection.mask === selectedMask);
-  details.replaceChildren();
-  if (!row) { details.textContent = "Select an intersection to inspect its participating hotspots."; return; }
-  const title = document.createElement("strong");
-  title.textContent = row.count + " species recorded exclusively at these selected hotspots:";
-  const list = document.createElement("ul");
-  model.locations.filter(location => row.locationIds.includes(location.id)).forEach(location => {
-    const item = document.createElement("li"); item.textContent = location.name + " [" + location.id + "]"; list.append(item);
-  });
-  const note = document.createElement("p");
-  note.textContent = "These species are absent from the other hotspots in this comparison; observations outside the selected sets do not affect this exclusive intersection.";
-  details.append(title,list,note);
-}
-
-async function update({ changedKeys = [] } = {}) {
-  if (disposed) return;
-  const filters = { ...store.getFilters("t4"), candidateLocationIds: selectionSource.getIds() };
-  const token = ++request;
-  if (changedKeys.length) message.hidden = true;
-  selectedMask = null; model = undefined;
-  chart.clear(); total.textContent = ""; locationList.replaceChildren(); renderSelection();
-  container.setAttribute("aria-busy","false");
-  if (!filters.countyCode || filters.candidateLocationIds.length < 3) {
-    status.textContent = !filters.countyCode ? "Select a state and county, then choose 3–5 hotspots." : "Choose at least 3 hotspots; currently selected: " + filters.candidateLocationIds.length + ".";
-    onSelectionChange?.({ filters, valid: false });
-    return;
-  }
-  if (filters.candidateLocationIds.length > 5) { status.textContent = "Choose at most 5 hotspots for the UpSet comparison."; onSelectionChange?.({ filters, valid: false }); return; }
-  const key = filters.countyCode + ":" + filters.candidateLocationIds.join(",");
-  status.textContent = "Loading precomputed hotspot species memberships…";
-  container.setAttribute("aria-busy","true");
-  try {
-    if (key !== cacheKey) {
-      const rows = validateLoadedHotspots(await loadHotspotSpecies(filters.countyCode,filters.candidateLocationIds),filters.candidateLocationIds);
-      if (token !== request) return;
-      cachedRows = rows; cacheKey = key;
-    }
-    model = buildExclusiveIntersections(cachedRows);
-    picker?.setLabels(cachedRows);
-    chart.render({ model, selectedMask });
-    model.locations.forEach(location => {
-      const item = document.createElement("li"); item.textContent = location.name + " [" + location.id + "] · " + location.richness + " distinct species"; locationList.append(item);
+  function renderSelection() {
+    const row = model?.intersections.find(intersection => intersection.mask === selectedMask);
+    details.replaceChildren();
+    if (!row) { details.textContent = "Select an intersection to inspect its participating hotspots."; return; }
+    const title = document.createElement("strong");
+    title.textContent = row.count + " species recorded exclusively at these selected hotspots:";
+    const list = document.createElement("ul");
+    model.locations.filter(location => row.locationIds.includes(location.id)).forEach(location => {
+      const item = document.createElement("li"); item.textContent = location.name + " [" + location.id + "]"; list.append(item);
     });
-    const sum = model.intersections.reduce((value,row)=>value+row.count,0);
-    total.textContent = "Total distinct-species richness: " + model.unionRichness + " · sum of exclusive intersections: " + sum;
-    status.textContent = model.intersections.length
-      ? model.locations.length + " hotspots · " + model.intersections.length + " nonempty exclusive intersections · " + filters.countyCode + " · 2012–2025."
-      : "No species recorded in these hotspot memberships. All selected sets are empty.";
-    onSelectionChange?.({ filters, valid: true });
-  } catch (error) {
-    if (disposed) return;
-    if (token !== request) return;
-    model = undefined; chart.clear(); onSelectionChange?.({ filters, valid: false });
-    status.textContent = "Unable to load this selection. Hotspot IDs must belong to the selected county and the offline summary must be available. " + error.message + ". Remove or change a hotspot to retry; unavailable data is not zero overlap.";
-  } finally { if (token === request) container.setAttribute("aria-busy","false"); }
-}
+    const note = document.createElement("p");
+    note.textContent = "These species are absent from the other hotspots in this comparison; observations outside the selected sets do not affect this exclusive intersection.";
+    details.append(title,list,note);
+  }
 
-async function initialize() {
-  try {
-    chart = createHotspotOverlapChart({ d3, sizing, container, tooltip:elements["overlap-tooltip"], onSelect:mask=>{
-      selectedMask=mask; renderSelection(); chart.render({model,selectedMask});
-    } });
-    if (selectionSource.setIds) picker = createHotspotPicker({ container:elements["hotspot-picker"], store, loadLocations:loadHotspots, maxCandidates:5, selection: selectionSource });
-    else elements["hotspot-picker"].closest("section").hidden = true;
-    picker?.setLabels(cachedRows);
-    unsubscribe = store.subscribe({keys:["shared.stateCode","shared.countyCode",...selectionSource.keys]},update);
-    await update();
-  } catch (error) {
-    if (disposed) return; status.textContent = "Unable to initialize hotspot overlap: " + error.message; }
-}
+  async function update({ changedKeys = [] } = {}) {
+    if (disposed) return;
+    const filters = { ...store.getFilters("t4"), candidateLocationIds: selectionSource.getIds() };
+    const token = ++request;
+    if (changedKeys.length) message.hidden = true;
+    selectedMask = null; model = undefined;
+    chart.clear(); total.textContent = ""; locationList.replaceChildren(); renderSelection();
+    container.setAttribute("aria-busy","false");
+    if (!filters.countyCode || filters.candidateLocationIds.length < 3) {
+      status.textContent = !filters.countyCode ? "Select a state and county, then choose 3–5 hotspots." : "Choose at least 3 hotspots; currently selected: " + filters.candidateLocationIds.length + ".";
+      onSelectionChange?.({ filters, valid: false });
+      return;
+    }
+    if (filters.candidateLocationIds.length > 5) { status.textContent = "Choose at most 5 hotspots for the UpSet comparison."; onSelectionChange?.({ filters, valid: false }); return; }
+    const key = filters.countyCode + ":" + filters.candidateLocationIds.join(",");
+    status.textContent = "Loading precomputed hotspot species memberships…";
+    container.setAttribute("aria-busy","true");
+    try {
+      if (key !== cacheKey) {
+        const rows = validateLoadedHotspots(await loadHotspotSpecies(filters.countyCode,filters.candidateLocationIds),filters.candidateLocationIds);
+        if (token !== request) return;
+        cachedRows = rows; cacheKey = key;
+      }
+      model = buildExclusiveIntersections(cachedRows);
+      picker?.setLabels(cachedRows);
+      chart.render({ model, selectedMask });
+      model.locations.forEach(location => {
+        const item = document.createElement("li"); item.textContent = location.name + " [" + location.id + "] · " + location.richness + " distinct species"; locationList.append(item);
+      });
+      const sum = model.intersections.reduce((value,row)=>value+row.count,0);
+      total.textContent = "Total distinct-species richness: " + model.unionRichness + " · sum of exclusive intersections: " + sum;
+      status.textContent = model.intersections.length
+        ? model.locations.length + " hotspots · " + model.intersections.length + " nonempty exclusive intersections · " + filters.countyCode + " · 2012–2025."
+        : "No species recorded in these hotspot memberships. All selected sets are empty.";
+      onSelectionChange?.({ filters, valid: true });
+    } catch (error) {
+      if (disposed) return;
+      if (token !== request) return;
+      model = undefined; chart.clear(); onSelectionChange?.({ filters, valid: false });
+      status.textContent = "Unable to load this selection. Hotspot IDs must belong to the selected county and the offline summary must be available. " + error.message + ". Remove or change a hotspot to retry; unavailable data is not zero overlap.";
+    } finally { if (token === request) container.setAttribute("aria-busy","false"); }
+  }
+
+  async function initialize() {
+    try {
+      chart = createHotspotOverlapChart({ d3, sizing, container, tooltip:elements["overlap-tooltip"], onSelect:mask=>{
+        selectedMask=mask; renderSelection(); chart.render({model,selectedMask});
+      } });
+      if (selectionSource.setIds) picker = createHotspotPicker({ container:elements["hotspot-picker"], store, loadLocations:loadHotspots, maxCandidates:5, selection: selectionSource });
+      else elements["hotspot-picker"].closest("section").hidden = true;
+      picker?.setLabels(cachedRows);
+      unsubscribe = store.subscribe({keys:["shared.stateCode","shared.countyCode",...selectionSource.keys]},update);
+      await update();
+    } catch (error) {
+      if (disposed) return; status.textContent = "Unable to initialize hotspot overlap: " + error.message; }
+  }
   if (initialMessage) { message.textContent = initialMessage; message.hidden = false; }
   const ready = initialize();
   return { root: frame.root, ready, destroy() {

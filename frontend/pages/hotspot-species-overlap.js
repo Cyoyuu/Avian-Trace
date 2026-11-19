@@ -1,3 +1,4 @@
+import { createFilterOptions } from "../helpers/filter-options.js";
 import { createFilterStore } from "../filters/filter-store.js";
 import { createFilterHeader } from "../components/filter-header.js";
 import * as data from "../api/info-loader.js";
@@ -29,10 +30,7 @@ async function initialize() {
         : error.message.includes("503") ? "The precomputed hotspot summary is unavailable; complete the offline preparation" : error.message;
       initialMessage = "Link selection rejected or unavailable: " + reason + ". Nothing from the link was selected. Choose a county and 3–5 eligible hotspots below.";
     }
-    header = createFilterHeader({ container: "#filters", store, chartId: "t4UpSet", options: {
-      stateCode: geography.filter(row => row.region_level === "state").map(row => ({ value: row.region_code, label: row.region_name })),
-      countyCode: geography.filter(row => row.region_level === "county").map(row => ({ value: row.region_code, label: row.region_name }))
-    } });
+    header = createFilterHeader({ container: "#filters", store, chartId: "t4UpSet", options: createFilterOptions(geography, undefined) });
     container.replaceChildren();
     view = mountHotspotSpeciesOverlap({ container, store, data, d3, initialRows, initialMessage,
       onSelectionChange({ filters, valid }) {

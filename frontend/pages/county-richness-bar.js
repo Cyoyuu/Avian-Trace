@@ -1,3 +1,4 @@
+import { createFilterOptions } from "../helpers/filter-options.js";
 import { createFilterStore } from "../filters/filter-store.js";
 import { createFilterHeader } from "../components/filter-header.js";
 import * as api from "../api/info-loader.js";
@@ -11,13 +12,9 @@ async function initialize() {
     const geography = await api.loadGeographicOptions();
     const taxa = undefined;
     if (disposed) return;
-    header = createFilterHeader({ container: "#filters", store, chartId: "t1", options: {
-      stateCode: geography.filter(row => row.region_level === "state").map(row => ({ value: row.region_code, label: row.region_name })),
-      countyCode: geography.filter(row => row.region_level === "county").map(row => ({ value: row.region_code, label: row.region_name })),
-      
-    } });
+    header = createFilterHeader({ container: "#filters", store, chartId: "t1", options: createFilterOptions(geography, taxa) });
     container.replaceChildren();
-    view = mountCountyRichnessBar({ container, store, geography, taxa, d3, data: { ...api, loadCountyGeometry: () => d3.json("/data/counties-10m.json") } });
+    view = mountCountyRichnessBar({ container, store, geography, taxa, d3, data: api });
     await view.ready;
   } catch (error) { if (!disposed) container.textContent = "Unable to initialize visualization: " + error.message; }
 }

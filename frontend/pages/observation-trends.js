@@ -1,7 +1,8 @@
+import { createFilterOptions } from "../helpers/filter-options.js";
 import { createFilterStore } from "../filters/filter-store.js";
 import { createFilterHeader } from "../components/filter-header.js";
 import * as api from "../api/info-loader.js";
-import { loadTaxonNameMap } from "../helpers/taxon-converter.js";
+import { loadTaxonNameMap } from "../api/taxon-converter.js";
 import { mountObservationTrends } from "../visualizations/t2/observation-trends-view.js";
 
 const store = createFilterStore();
@@ -12,13 +13,9 @@ async function initialize() {
     const geography = await api.loadGeographicOptions();
     const taxa = await loadTaxonNameMap();
     if (disposed) return;
-    header = createFilterHeader({ container: "#filters", store, chartId: "t2", options: {
-      stateCode: geography.filter(row => row.region_level === "state").map(row => ({ value: row.region_code, label: row.region_name })),
-      countyCode: geography.filter(row => row.region_level === "county").map(row => ({ value: row.region_code, label: row.region_name })),
-      taxonId: [...taxa].map(([value, label]) => ({ value, label }))
-    } });
+    header = createFilterHeader({ container: "#filters", store, chartId: "t2", options: createFilterOptions(geography, taxa) });
     container.replaceChildren();
-    view = mountObservationTrends({ container, store, geography, taxa, d3, data: { ...api, loadCountyGeometry: () => d3.json("/data/counties-10m.json") } });
+    view = mountObservationTrends({ container, store, geography, taxa, d3, data: api });
     await view.ready;
   } catch (error) { if (!disposed) container.textContent = "Unable to initialize visualization: " + error.message; }
 }
