@@ -1,22 +1,35 @@
-import { createFilterStore } from "./filters/filter-store.js";
-import { createFilterHeader } from "./components/filter-header.js";
-import { loadCountyRichness, loadGeographicOptions } from "./api/info-loader.js";
-import { STATE_ABBREVIATIONS } from "./helpers/geographic-codes.js";
-import { getCountiesByStateId } from "./helpers/location-converter.js";
-import { joinCountyRichness } from "./charts/county-choropleth-data.js";
-import { createCountyChoropleth } from "./charts/county-choropleth.js";
+import { STATE_ABBREVIATIONS } from "../../helpers/geographic-codes.js";
+import { getCountiesByStateId } from "../../helpers/location-converter.js";
+import { joinCountyRichness } from "./county-choropleth-data.js";
+import { createCountyChoropleth } from "./county-choropleth.js";
+import { createVisualizationFrame } from "../../components/visualization-frame.js";
 
-const store = createFilterStore();
+const HTML = `
+<p id="map-status" role="status" aria-live="polite">Loading geographic options…</p>
+      <h2 id="map-title">Select a state</h2>
+      <div id="county-map" aria-busy="true"></div>
+      <p id="county-selection" aria-live="polite">No county highlighted.</p>
+      <p id="geometry-note"></p>
+      <p class="county-richness-page__note">Darker blue indicates more recorded species. Click a county or use the county selector to highlight it; every county remains in the statewide comparison. Keyboard users can focus a county and press Enter or Space. Choose “Select county” to clear the highlight.</p>
+      <p class="county-richness-page__note">Counts include species-category observation records, not individual birds or population estimates. A species recorded in multiple years counts once toward richness. The displayed period excludes partial-year 2026.</p>
+<div id="county-tooltip" class="county-choropleth__tooltip" role="tooltip" hidden></div>
+`;
+
+export function mountCountyChoropleth({ container: host, store, data, geography, taxa, d3 = globalThis.d3, topojson = globalThis.topojson, sizing = {}, onExploreOverlap }) {
+  const frame = createVisualizationFrame({ container: host, html: HTML, className: "county-richness-page" });
+  const { elements } = frame;
+  let disposed = false;
+  const { loadCountyRichness, loadGeographicOptions } = data;
+
 const period = { startYear: 2012, endYear: 2025 };
-const status = document.querySelector("#map-status");
-const mapContainer = document.querySelector("#county-map");
-const selection = document.querySelector("#county-selection");
-const geometryNote = document.querySelector("#geometry-note");
+const status = elements["map-status"];
+const mapContainer = elements["county-map"];
+const selection = elements["county-selection"];
+const geometryNote = elements["geometry-note"];
 const cache = new Map();
 let requestId = 0;
 let displayedCounties = null;
 let displayedRows = [];
-let header;
 let unsubscribe;
 let chart;
 
@@ -38,25 +51,18 @@ function updateHighlight(countyCode) {
 
 async function initialize() {
   try {
-    const [geography, topology] = await Promise.all([
-      loadGeographicOptions(), d3.json("/data/counties-10m.json")
-    ]);
+    const topology = await data.loadCountyGeometry();
+    if (disposed) return;
     const allCounties = topojson.feature(topology, topology.objects.counties);
     const states = geography.filter(row => row.region_level === "state" && Object.values(STATE_ABBREVIATIONS).includes(row.region_code.slice(3)));
-    header = createFilterHeader({
-      container: "#filters", store, chartId: "t1Map",
-      options: {
-        stateCode: states.map(row => ({ value: row.region_code, label: row.region_name })),
-        countyCode: geography.filter(row => row.region_level === "county").map(row => ({ value: row.region_code, label: row.region_name }))
-      }
-    });
-    chart = createCountyChoropleth({
+    chart = createCountyChoropleth({ d3, sizing,
       container: mapContainer,
-      tooltip: document.querySelector("#county-tooltip"),
+      tooltip: elements["county-tooltip"],
       onCountySelect: countyCode => store.setShared({ countyCode })
     });
 
     async function update({ filters, changedKeys }) {
+      if (disposed) return;
       // Highlight changes never request or filter statewide data.
       if (changedKeys.length && changedKeys.every(key => key === "shared.countyCode")) {
         updateHighlight(filters.countyCode);
@@ -70,12 +76,12 @@ async function initialize() {
       selection.textContent = "No county highlighted.";
       if (!filters.stateCode) {
         status.textContent = "Select a state to compare its counties.";
-        document.querySelector("#map-title").textContent = "Select a state";
+        elements["map-title"].textContent = "Select a state";
         mapContainer.setAttribute("aria-busy", "false");
         return;
       }
       const stateName = states.find(row => row.region_code === filters.stateCode).region_name;
-      document.querySelector("#map-title").textContent = stateName + " · 2012–2025";
+      elements["map-title"].textContent = stateName + " · 2012–2025";
       status.textContent = "Loading all counties in " + stateName + "…";
       mapContainer.setAttribute("aria-busy", "true");
       try {
@@ -100,6 +106,7 @@ async function initialize() {
         ].filter(Boolean).join(" ");
         status.textContent = "Showing all " + counties.features.length + " county boundaries in " + stateName + ". Select a county to highlight it.";
       } catch (error) {
+        if (disposed) return;
         if (currentRequest !== requestId) return;
         status.textContent = "Unable to load county richness: " + error.message + ". Reselect a state to retry.";
       } finally {
@@ -109,15 +116,18 @@ async function initialize() {
     unsubscribe = store.subscribe({ chartId: "t1Map" }, update);
     await update({ filters: store.getFilters("t1Map"), changedKeys: [] });
   } catch (error) {
+        if (disposed) return;
     status.textContent = "Unable to initialize county map: " + error.message;
     mapContainer.setAttribute("aria-busy", "false");
   }
 }
 
-initialize();
-window.addEventListener("pagehide", () => {
-  requestId += 1;
-  unsubscribe?.();
-  header?.destroy();
-  chart?.destroy();
-}, { once: true });
+  const ready = initialize();
+  return { root: frame.root, ready, destroy() {
+    if (disposed) return; disposed = true;
+    requestId++;
+    unsubscribe?.();
+
+    chart?.destroy(); frame.destroy();
+  } };
+}

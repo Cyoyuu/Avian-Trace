@@ -5,24 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Avian Trace — County Species Richness</title>
     <link rel="stylesheet" href="components/filter-header.css" />
-    <link rel="stylesheet" href="county-choropleth.css" />
+    <link rel="stylesheet" href="visualizations/t1/county-choropleth.css" />
+    <link rel="stylesheet" href="styles/standalone.css">
+    <link rel="stylesheet" href="components/visualization-frame.css">
   </head>
   <body class="county-richness-page">
     <main>
       <h1>County Species Richness</h1>
       <p>Explore recorded distinct-species richness across every county in a state, 2012–2025.</p>
       <div id="filters" aria-label="County richness filters"></div>
-      <p id="map-status" role="status" aria-live="polite">Loading geographic options…</p>
-      <h2 id="map-title">Select a state</h2>
-      <div id="county-map" aria-busy="true"></div>
-      <p id="county-selection" aria-live="polite">No county highlighted.</p>
-      <p id="geometry-note"></p>
-      <p class="county-richness-page__note">Darker blue indicates more recorded species. Click a county or use the county selector to highlight it; every county remains in the statewide comparison. Keyboard users can focus a county and press Enter or Space. Choose “Select county” to clear the highlight.</p>
-      <p class="county-richness-page__note">Counts include species-category observation records, not individual birds or population estimates. A species recorded in multiple years counts once toward richness. The displayed period excludes partial-year 2026.</p>
+      <div id="visualization"><p role="status">Loading geographic options…</p></div>
     </main>
-    <div id="county-tooltip" class="county-choropleth__tooltip" role="tooltip" hidden></div>
+
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
-    <script type="module" src="county-choropleth.js"></script>
+    <script type="module" src="pages/county-choropleth.js"></script>
   </body>
 </html>

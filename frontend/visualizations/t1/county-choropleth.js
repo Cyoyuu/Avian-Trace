@@ -1,7 +1,7 @@
 // Uses the same GeoJSON, Albers fitting, and county click-selection pattern as us-map.js.
-export function createCountyChoropleth({ container, tooltip, onCountySelect }) {
+export function createCountyChoropleth({ d3 = globalThis.d3, sizing = {}, container, tooltip, onCountySelect }) {
   const width = 960;
-  const height = 560;
+  const height = sizing.height ?? 560;
   const root = d3.select(container);
   const svg = root.append("svg")
     .attr("class", "county-choropleth__map")

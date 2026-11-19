@@ -4,7 +4,7 @@ import { DuckDBInstance } from "@duckdb/node-api";
 import { feature } from "topojson-client";
 import { readFileSync } from "node:fs";
 import { COUNTY_RICHNESS_SQL } from "../backend/county-richness-query.js";
-import { joinCountyRichness } from "../frontend/charts/county-choropleth-data.js";
+import { joinCountyRichness } from "../frontend/visualizations/t1/county-choropleth-data.js";
 import { getCountiesByStateId, getCountyIdFromRegionCode } from "../frontend/helpers/location-converter.js";
 import { STATE_ABBREVIATIONS } from "../frontend/helpers/geographic-codes.js";
 import { createFilterStore } from "../frontend/filters/filter-store.js";
