@@ -5,23 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Avian Trace — Seasonal Species Heatmap</title>
     <link rel="stylesheet" href="components/filter-header.css" />
-    <link rel="stylesheet" href="seasonal-species-heatmap.css" />
+    <link rel="stylesheet" href="visualizations/t2/seasonal-species-heatmap.css" />
+    <link rel="stylesheet" href="styles/standalone.css">
+    <link rel="stylesheet" href="components/visualization-frame.css">
   </head>
   <body class="species-heatmap-page">
     <main>
       <h1>Seasonal Species Heatmap</h1>
       <p>Explore monthly observation totals for the most frequently recorded species.</p>
       <div id="filters" aria-label="Species heatmap filters"></div>
-      <p id="heatmap-status" role="status" aria-live="polite">Loading geographic options…</p>
-      <h2 id="heatmap-title">Select a state</h2>
-      <p id="heatmap-context"></p>
-      <div id="species-heatmap" aria-busy="true" tabindex="0" role="region" aria-label="Monthly observation totals. Scroll horizontally on narrow screens to see all months."></div>
-      <p id="coverage-note" aria-live="polite"></p>
-      <p class="species-heatmap-page__note">Cell values are observation totals aggregated across the selected years, not monthly averages. Darker blue means more records. Hover or focus a cell to inspect its species, month, and total.</p>
-      <p class="species-heatmap-page__note">Species are selected by total observation records across all twelve months before display sorting. A zero means no matching records in processed data; it does not establish that a species was absent. Shared single-species selections and the trends chart's season do not restrict this heatmap.</p>
+      <div id="visualization"><p role="status">Loading geographic options…</p></div>
     </main>
-    <div id="heatmap-tooltip" class="species-heatmap__tooltip" role="tooltip" hidden></div>
+
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-    <script type="module" src="seasonal-species-heatmap.js"></script>
+    <script type="module" src="pages/seasonal-species-heatmap.js"></script>
   </body>
 </html>

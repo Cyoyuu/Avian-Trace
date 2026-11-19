@@ -1,15 +1,28 @@
-import { createFilterStore } from "./filters/filter-store.js";
-import { createFilterHeader } from "./components/filter-header.js";
-import { loadGeographicOptions, loadSpeciesHeatmap } from "./api/info-loader.js";
-import { buildSpeciesHeatmap } from "./charts/species-heatmap-data.js";
-import { createSpeciesHeatmap } from "./charts/species-heatmap.js";
+import { buildSpeciesHeatmap } from "./species-heatmap-data.js";
+import { createSpeciesHeatmap } from "./species-heatmap.js";
+import { createVisualizationFrame } from "../../components/visualization-frame.js";
 
-const store = createFilterStore();
-const status = document.querySelector("#heatmap-status");
-const container = document.querySelector("#species-heatmap");
-const coverage = document.querySelector("#coverage-note");
+const HTML = `
+<p id="heatmap-status" role="status" aria-live="polite">Loading geographic options…</p>
+      <h2 id="heatmap-title">Select a state</h2>
+      <p id="heatmap-context"></p>
+      <div id="species-heatmap" aria-busy="true" tabindex="0" role="region" aria-label="Monthly observation totals. Scroll horizontally on narrow screens to see all months."></div>
+      <p id="coverage-note" aria-live="polite"></p>
+      <p class="species-heatmap-page__note">Cell values are observation totals aggregated across the selected years, not monthly averages. Darker blue means more records. Hover or focus a cell to inspect its species, month, and total.</p>
+      <p class="species-heatmap-page__note">Species are selected by total observation records across all twelve months before display sorting. A zero means no matching records in processed data; it does not establish that a species was absent. Shared single-species selections and the trends chart's season do not restrict this heatmap.</p>
+<div id="heatmap-tooltip" class="species-heatmap__tooltip" role="tooltip" hidden></div>
+`;
+
+export function mountSeasonalSpeciesHeatmap({ container: host, store, data, geography, taxa, d3 = globalThis.d3, topojson = globalThis.topojson, sizing = {}, onExploreOverlap }) {
+  const frame = createVisualizationFrame({ container: host, html: HTML, className: "species-heatmap-page" });
+  const { elements } = frame;
+  let disposed = false;
+  const { loadGeographicOptions, loadSpeciesHeatmap } = data;
+
+const status = elements["heatmap-status"];
+const container = elements["species-heatmap"];
+const coverage = elements["coverage-note"];
 let rows = [];
-let header;
 let chart;
 let unsubscribe;
 let requestId = 0;
@@ -23,13 +36,9 @@ function renderCurrent() {
 
 async function initialize() {
   try {
-    const geography = await loadGeographicOptions();
-    header = createFilterHeader({ container: "#filters", store, chartId: "t2Heatmap", options: {
-      stateCode: geography.filter(row => row.region_level === "state").map(row => ({ value: row.region_code, label: row.region_name })),
-      countyCode: geography.filter(row => row.region_level === "county").map(row => ({ value: row.region_code, label: row.region_name }))
-    } });
-    chart = createSpeciesHeatmap({ container, tooltip: document.querySelector("#heatmap-tooltip") });
+    chart = createSpeciesHeatmap({ d3, sizing, container, tooltip: elements["heatmap-tooltip"] });
     async function update({ filters, changedKeys }) {
+      if (disposed) return;
       if (changedKeys.length && changedKeys.every(key => key === "charts.t2Heatmap.sortOrder")) {
         if (rows.length) renderCurrent();
         return;
@@ -40,16 +49,16 @@ async function initialize() {
       coverage.textContent = "";
       if (!filters.stateCode) {
         status.textContent = "Select a state. Choose a county to narrow the area.";
-        document.querySelector("#heatmap-title").textContent = "Select a state";
-        document.querySelector("#heatmap-context").textContent = "";
+        elements["heatmap-title"].textContent = "Select a state";
+        elements["heatmap-context"].textContent = "";
         container.setAttribute("aria-busy", "false");
         return;
       }
       const regionCode = filters.countyCode || filters.stateCode;
       const regionLevel = filters.countyCode ? "county" : "state";
       const name = geography.find(row => row.region_code === regionCode)?.region_name || regionCode;
-      document.querySelector("#heatmap-title").textContent = "Top species in " + name;
-      document.querySelector("#heatmap-context").textContent = "Observation totals aggregated across " + filters.startYear + "–" + filters.endYear + " · all twelve months";
+      elements["heatmap-title"].textContent = "Top species in " + name;
+      elements["heatmap-context"].textContent = "Observation totals aggregated across " + filters.startYear + "–" + filters.endYear + " · all twelve months";
       status.textContent = "Loading monthly observation totals…";
       container.setAttribute("aria-busy", "true");
       try {
@@ -71,6 +80,7 @@ async function initialize() {
           ? "Some monthly totals are unavailable. Gray cells are not zero observations."
           : "All selected years have processed summaries. Months with no matching records are zero.";
       } catch (error) {
+        if (disposed) return;
         if (currentRequest === requestId) status.textContent = "Unable to load species heatmap: " + error.message + ". Change a filter to retry.";
       } finally {
         if (currentRequest === requestId) container.setAttribute("aria-busy", "false");
@@ -79,15 +89,17 @@ async function initialize() {
     unsubscribe = store.subscribe({ chartId: "t2Heatmap" }, update);
     await update({ filters: store.getFilters("t2Heatmap"), changedKeys: [] });
   } catch (error) {
+        if (disposed) return;
     status.textContent = "Unable to initialize species heatmap: " + error.message;
     container.setAttribute("aria-busy", "false");
   }
 }
-initialize();
-window.addEventListener("pagehide", event => {
-  if (event.persisted) return;
-  requestId += 1;
-  unsubscribe?.();
-  header?.destroy();
-  chart?.destroy();
-});
+  const ready = initialize();
+  return { root: frame.root, ready, destroy() {
+    if (disposed) return; disposed = true;
+    requestId++;
+    unsubscribe?.();
+
+    chart?.destroy(); frame.destroy();
+  } };
+}

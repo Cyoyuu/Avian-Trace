@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DuckDBInstance } from "@duckdb/node-api";
 import { querySpeciesHeatmap, SPECIES_HEATMAP_SQL } from "../backend/species-heatmap-query.js";
-import { buildSpeciesHeatmap } from "../frontend/charts/species-heatmap-data.js";
+import { buildSpeciesHeatmap } from "../frontend/visualizations/t2/species-heatmap-data.js";
 import { createFilterStore } from "../frontend/filters/filter-store.js";
 import { getFilterEntries } from "../frontend/filters/filter-definitions.js";
 

@@ -1,6 +1,6 @@
 import { MONTH_NAMES } from "./species-heatmap-data.js";
 
-export function createSpeciesHeatmap({ container, tooltip }) {
+export function createSpeciesHeatmap({ d3 = globalThis.d3, sizing = {}, container, tooltip }) {
   const svg = d3.select(container).append("svg").attr("class", "species-heatmap__plot")
     .attr("role", "group").attr("aria-label", "Monthly observation totals by species")
     .attr("width", 0).attr("height", 0);

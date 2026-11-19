@@ -1,11 +1,9 @@
 .species-heatmap-page { margin: 0; background: #f8fafc; color: #1f2937; font: 15px system-ui, sans-serif; }
-.species-heatmap-page main { max-width: 1100px; margin: 24px auto; padding: 0 20px; }
-.species-heatmap-page h1 { margin-bottom: 8px; font-size: 28px; }
 .species-heatmap-page h2 { margin-bottom: 8px; font-size: 20px; }
 .species-heatmap-page p { line-height: 1.5; }
 .species-heatmap-page__note { color: #4b5563; font-size: 14px; }
-#species-heatmap { overflow-x: auto; background: white; border: 1px solid #d1d5db; border-radius: 6px; }
-#species-heatmap:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+[data-role="species-heatmap"] { overflow-x: auto; background: white; border: 1px solid #d1d5db; border-radius: 6px; }
+[data-role="species-heatmap"]:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .species-heatmap__plot { display: block; max-width: none; font: 13px system-ui, sans-serif; }
 .species-heatmap__month-axis text, .species-heatmap__species-axis text, .species-heatmap__legend text { font: 12px system-ui, sans-serif; }
 .species-heatmap__cell { stroke: #e5e7eb; stroke-width: 1; }
