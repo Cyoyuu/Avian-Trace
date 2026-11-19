@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Avian Trace — Hotspot Species Overlap</title>
   <link rel="stylesheet" href="components/filter-header.css">
-  <link rel="stylesheet" href="visualizations/t4/location-combinations.css">
-  <link rel="stylesheet" href="hotspot-species-overlap.css">
+  <link rel="stylesheet" href="visualizations/t4/hotspot-species-overlap.css">
+  <link rel="stylesheet" href="styles/standalone.css">
+  <link rel="stylesheet" href="components/visualization-frame.css">
+  <link rel="stylesheet" href="visualizations/t4/hotspot-common.css">
+  <link rel="stylesheet" href="components/hotspot-picker.css">
 </head>
 <body class="location-combinations-page hotspot-overlap-page">
 <main>
@@ -14,27 +17,10 @@
   <p>Explore exclusive species intersections among 3–5 selected eBird hotspots. Coverage: 2012–2025.</p>
   <aside class="access-notice"><strong>Access notice:</strong> eBird hotspot status does not guarantee public accessibility. Hotspots may be private or restricted. Check current access rules and obtain any required permission before visiting.</aside>
   <div id="filters" aria-label="Hotspot overlap filters"></div>
-  <p id="selection-message" role="alert" hidden></p>
-  <section aria-labelledby="overlap-picker-title">
-    <h2 id="overlap-picker-title">Choose 3–5 hotspots in one county</h2>
-    <div id="hotspot-picker"></div>
-  </section>
-  <section aria-labelledby="overlap-title">
-    <h2 id="overlap-title">Exclusive species intersections</h2>
-    <p id="overlap-status" role="status" aria-live="polite">Loading county choices…</p>
-    <p id="overlap-total" class="overlap-total" aria-live="polite"></p>
-    <p>Each bar counts species recorded at <strong>exactly</strong> the filled-dot hotspots, and at none of the other selected hotspots. Connected filled dots identify that membership pattern; pale dots indicate absence from that set.</p>
-    <div id="overlap-chart" aria-busy="false"></div>
-    <div id="overlap-selection" aria-live="polite">Select an intersection to inspect its participating hotspots.</div>
-    <h3>Selected hotspot sets</h3>
-    <ul id="overlap-hotspots"></ul>
-    <p>Hover or focus a column for full hotspot names and its species count. Click, Enter, or Space selects it. Use Left/Right, Home, or End to move between columns; Escape dismisses the tooltip. Scroll horizontally to inspect every intersection.</p>
-    <p>Only nonempty intersections are displayed, ordered by species count. Their counts sum to total distinct-species richness. Shared species, year-range, season, and combination-size filters do not restrict this fixed 2012–2025 comparison.</p>
-    <p><a href="location-combinations.html">Back to the hotspot combination bar chart</a>. Select a combination there to open this page with those hotspot IDs. The current valid overlap selection is also represented in this page’s URL for sharing.</p>
-  </section>
+  <div id="visualization"><p role="status">Loading county choices…</p></div>
 </main>
-<div id="overlap-tooltip" role="tooltip" hidden></div>
+
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-<script type="module" src="hotspot-species-overlap.js"></script>
+<script type="module" src="pages/hotspot-species-overlap.js"></script>
 </body>
 </html>

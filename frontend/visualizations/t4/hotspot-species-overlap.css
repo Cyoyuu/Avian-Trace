@@ -19,8 +19,8 @@
 .upset-chart__column:focus .upset-chart__target { stroke:#132f65; stroke-width:3px; }
 .upset-chart__count { font-weight:600; }
 .overlap-total { font-size:19px; font-weight:650; color:#204d72; }
-#overlap-selection { background:#e8f0f6; padding:12px; margin-top:12px; overflow-wrap:anywhere; }
-#overlap-hotspots { overflow-wrap:anywhere; }
-#selection-message { background:#fff1d8; border-left:4px solid #a45708; padding:10px; }
-#overlap-tooltip { position:fixed; z-index:10; background:#fff; border:1px solid #9cabb5; border-radius:5px; box-shadow:0 3px 12px #0003; padding:10px; max-width:min(480px,calc(100vw - 40px)); max-height:calc(100vh - 40px); overflow:auto; overflow-wrap:anywhere; pointer-events:none; font:14px/1.45 system-ui,sans-serif; }
+[data-role="overlap-selection"] { background:#e8f0f6; padding:12px; margin-top:12px; overflow-wrap:anywhere; }
+[data-role="overlap-hotspots"] { overflow-wrap:anywhere; }
+[data-role="selection-message"] { background:#fff1d8; border-left:4px solid #a45708; padding:10px; }
+[data-role="overlap-tooltip"] { position:fixed; z-index:10; background:#fff; border:1px solid #9cabb5; border-radius:5px; box-shadow:0 3px 12px #0003; padding:10px; max-width:min(480px,calc(100vw - 40px)); max-height:calc(100vh - 40px); overflow:auto; overflow-wrap:anywhere; pointer-events:none; font:14px/1.45 system-ui,sans-serif; }
 @media(max-width:600px) { .upset-chart { overflow-x:auto; } .upset-chart__viewport { flex:0 0 auto; min-width:360px; overflow-x:visible; } }

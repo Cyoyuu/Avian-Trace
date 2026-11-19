@@ -1,4 +1,4 @@
-import { hotspotOverlapUrl } from "../../helpers/hotspot-overlap-selection.js";
+import { hotspotOverlapUrl } from "./hotspot-overlap-selection.js";
 import { createHotspotPicker } from "../../components/hotspot-picker.js";
 import { buildLocationCombinations, sortLocationCombinations, pageLocationCombinations, combinationKey } from "./location-combinations-data.js";
 import { createLocationCombinationChart } from "./location-combinations-chart.js";

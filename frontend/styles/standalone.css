@@ -10,3 +10,4 @@
 .holiday-patterns-page h1 { margin-bottom: 8px; font-size: 28px; }
 .location-combinations-page main { max-width:1400px; margin:auto; padding:20px 26px; }
 .location-combinations-page h1 { margin:0 0 8px; font-size:27px; }
+@media(max-width:600px) { .location-combinations-page main { padding:14px; } }

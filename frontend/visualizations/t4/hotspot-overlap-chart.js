@@ -3,7 +3,7 @@ function labelLines(name) {
 }
 
 /** Conventional exclusive UpSet columns: bars above connected membership dots. */
-export function createHotspotOverlapChart({ container, tooltip, onSelect }) {
+export function createHotspotOverlapChart({ d3 = globalThis.d3, sizing = {}, container, tooltip, onSelect }) {
   const root = d3.select(container).append("div").attr("class", "upset-chart");
   const labels = root.append("svg").attr("class", "upset-chart__labels").attr("aria-hidden", "true");
   const viewport = root.append("div").attr("class", "upset-chart__viewport").attr("tabindex",0)
@@ -31,7 +31,7 @@ export function createHotspotOverlapChart({ container, tooltip, onSelect }) {
     current = next; hideTooltip();
     const { model, selectedMask } = next;
     const { locations, intersections } = model;
-    const baseline = 285, firstRow = 360, rowHeight = 64;
+    const baseline = sizing.plotHeight ?? 285, firstRow = baseline + 75, rowHeight = sizing.rowHeight ?? 64;
     const height = firstRow + locations.length*rowHeight;
     const width = Math.max(360,viewport.node().clientWidth,intersections.length*52+24);
     svg.attr("width",width).attr("height",height);

@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DuckDBInstance } from "@duckdb/node-api";
-import { buildExclusiveIntersections } from "../frontend/charts/hotspot-overlap-data.js";
-import { parseHotspotOverlapSelection, hotspotOverlapUrl, validateLoadedHotspots } from "../frontend/helpers/hotspot-overlap-selection.js";
+import { buildExclusiveIntersections } from "../frontend/visualizations/t4/hotspot-overlap-data.js";
+import { parseHotspotOverlapSelection, hotspotOverlapUrl, validateLoadedHotspots } from "../frontend/visualizations/t4/hotspot-overlap-selection.js";
 import { createFilterStore } from "../frontend/filters/filter-store.js";
 import { getFilterEntries } from "../frontend/filters/filter-definitions.js";
 const location = (id,species,name=id) => ({locality_id:id,locality_name:name,species_ids:species});
