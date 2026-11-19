@@ -1,11 +1,16 @@
 import { MAX_CANDIDATES } from "../charts/location-combinations-data.js";
 
+let nextPickerId = 0;
+
 /** A T4 control bound to the injected store, independent of the bar renderer. */
 export function createHotspotPicker({ container, store, loadLocations, maxCandidates = MAX_CANDIDATES }) {
   if (!Number.isInteger(maxCandidates) || maxCandidates < 1 || maxCandidates > MAX_CANDIDATES) throw new Error("Invalid candidate limit");
   const form = document.createElement("form");
   form.className = "hotspot-picker";
   form.innerHTML = '<label for="hotspot-search">Find candidate hotspots by name or ID</label><div class="hotspot-picker__search"><input id="hotspot-search" type="search" maxlength="100" autocomplete="off"><button type="submit">Search</button></div><p class="hotspot-picker__status" role="status"></p><ul class="hotspot-picker__selected" aria-label="Selected candidate hotspots"></ul><div class="hotspot-picker__results" aria-label="Hotspot search results"></div><div class="hotspot-picker__pages"><button type="button" data-action="previous">Previous locations</button><span></span><button type="button" data-action="next">Next locations</button></div>';
+  const inputId = "hotspot-search-" + (++nextPickerId);
+  form.querySelector("input").id = inputId;
+  form.querySelector("label").htmlFor = inputId;
   container.append(form);
   const input = form.querySelector("input");
   const status = form.querySelector(".hotspot-picker__status");
@@ -22,8 +27,10 @@ export function createHotspotPicker({ container, store, loadLocations, maxCandid
   let total = 0;
   let request = 0;
   let busy = false;
+  let destroyed = false;
 
   function draw() {
+    if (destroyed) return;
     const focusedId = results.contains(document.activeElement) ? document.activeElement.value : null;
     const ids = store.getFilters("t4").candidateLocationIds;
     selected.replaceChildren(...ids.map(id => {
@@ -64,6 +71,7 @@ export function createHotspotPicker({ container, store, loadLocations, maxCandid
   }
 
   async function load() {
+    if (destroyed) return;
     const token = ++request;
     rows = []; total = 0;
     if (!county) { busy = false; draw(); return; }
@@ -92,5 +100,5 @@ export function createHotspotPicker({ container, store, loadLocations, maxCandid
   load();
   return {
     setLabels(locations) { locations.forEach(row => labels.set(row.locality_id, row.locality_name)); draw(); },
-    destroy() { request++; unsubscribe(); form.remove(); } };
+    destroy() { if (destroyed) return; destroyed = true; request++; unsubscribe(); form.remove(); } };
 }
