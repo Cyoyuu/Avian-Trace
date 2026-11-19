@@ -157,3 +157,6 @@ function registerHolidayRoutes(app) {
 }
 
 module.exports = registerHolidayRoutes;
+
+// Share the existing read-only calendar/daily connection without changing the legacy route.
+module.exports.getHolidayConnection = getConnection;

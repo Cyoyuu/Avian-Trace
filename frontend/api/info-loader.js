@@ -44,3 +44,8 @@ export function loadGeographicOptions() {
 export function loadSpeciesHeatmap(regionCode, regionLevel, startYear, endYear, speciesCount) {
   return fetchAPI("/api/species-heatmap", { regionCode, regionLevel, startYear, endYear, speciesCount });
 }
+
+// Actual holidays versus their calendar-day complement, using observation records.
+export function loadHolidayObservations(countyCode, taxonId, startYear, endYear) {
+  return fetchAPI("/api/holiday-observations", { countyCode, taxonId, startYear, endYear });
+}

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Avian Trace — Holiday Observation Patterns</title>
+    <link rel="stylesheet" href="components/filter-header.css" />
+    <link rel="stylesheet" href="holiday-observation-patterns.css" />
+  </head>
+  <body class="holiday-patterns-page">
+    <main>
+      <h1>Holiday Observation Patterns</h1>
+      <p>Compare average daily observation records on actual holidays with all other calendar dates.</p>
+      <div id="filters" aria-label="Holiday observation filters"></div>
+      <p id="holiday-status" role="status" aria-live="polite">Loading county and species options…</p>
+      <h2 id="holiday-title">Select a county and species</h2>
+      <p id="holiday-context"></p>
+      <div id="holiday-chart" aria-busy="true" tabindex="0" role="region" aria-label="Holiday and non-holiday observation trends. Scroll horizontally on narrow screens to see every year."></div>
+      <p id="coverage-note" aria-live="polite"></p>
+      <p class="holiday-patterns-page__note">Hover or focus either yearly point to see both daily averages, observation totals, and calendar-day counts. Every day belongs to exactly one group, including days with zero recorded observations.</p>
+      <p class="holiday-patterns-page__note">Holidays are distinct dates marked as actual holidays in the existing calendar. Observed-only substitute dates belong to the non-holiday group. Leap years have 366 days; other years have 365.</p>
+      <p class="holiday-patterns-page__note">These are species-category observation records, not individual birds, unique checklists, or population estimates. Unavailable or inconsistent summaries produce gaps rather than zeros. The complete-year range is 2012–2025.</p>
+    </main>
+    <div id="holiday-tooltip" class="holiday-patterns__tooltip" role="tooltip" hidden></div>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script type="module" src="holiday-observation-patterns.js"></script>
+  </body>
+</html>

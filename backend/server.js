@@ -1,3 +1,4 @@
+import { getHolidayObservations } from "./holiday-observations.js";
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -149,6 +150,10 @@ app.get("/api/county-richness", endpoint((req, filters) => {
 app.get("/api/species-heatmap", endpoint((req, filters) => getSpeciesHeatmap(
   filters.regionCode, filters.regionLevel, filters.startYear, filters.endYear,
   Number(req.query.speciesCount ?? 15)
+)));
+
+app.get("/api/holiday-observations", endpoint((req, filters) => getHolidayObservations(
+  String(req.query.countyCode ?? ""), filters.taxonId, filters.startYear, filters.endYear
 )));
 
 registerHolidayRoutes(app);
