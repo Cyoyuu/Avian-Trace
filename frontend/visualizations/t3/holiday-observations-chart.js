@@ -4,7 +4,7 @@ const SERIES = [
   { key: "nonHolidayAverage", label: "Non-holidays", color: "#377eb8", dash: "6,3" }
 ];
 
-export function createHolidayObservationsChart({ container, tooltip }) {
+export function createHolidayObservationsChart({ d3 = globalThis.d3, sizing = {}, container, tooltip }) {
   const svg = d3.select(container).append("svg").attr("class", "holiday-patterns__plot")
     .attr("role", "group").attr("aria-label", "Average daily observation records on holidays and non-holidays")
     .attr("width", 0).attr("height", 0);
@@ -41,7 +41,7 @@ export function createHolidayObservationsChart({ container, tooltip }) {
   function render(model) {
     const {series,startYear,endYear}=model;
     const width=Math.max(720,container.clientWidth);
-    const height=520;
+    const height = sizing.height ?? 520;
     const margin={left:100,right:32,top:60,bottom:60};
     current={...model,viewportWidth:container.clientWidth};
     hideTooltip();

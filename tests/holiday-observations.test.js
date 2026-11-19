@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DuckDBInstance } from "@duckdb/node-api";
 import { HOLIDAY_OBSERVATIONS_SQL, validateHolidayObservations } from "../backend/holiday-observations-query.js";
-import { buildHolidaySeries } from "../frontend/charts/holiday-observations-data.js";
+import { buildHolidaySeries } from "../frontend/visualizations/t3/holiday-observations-data.js";
 import { createFilterStore } from "../frontend/filters/filter-store.js";
 import { getFilterEntries } from "../frontend/filters/filter-definitions.js";
 
