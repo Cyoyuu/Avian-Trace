@@ -146,16 +146,16 @@ npm start
 The Express server serves the following implemented pages at http://127.0.0.1:3000.
 Future visualization URLs will be added only when their pages are implemented.
 
-| Task | Visualization | URL | Implementation status |
-| --- | --- | --- | --- |
-| Infrastructure | Filter demo | [Filter demo](http://127.0.0.1:3000/filter-demo.html) | Implemented |
-| T1 | County Choropleth | [County Choropleth](http://127.0.0.1:3000/county-choropleth.html) | Implemented |
-| T1 | County Richness Bar Chart | [County Richness Bar Chart](http://127.0.0.1:3000/county-richness-bar.html) | Implemented |
-| T2 | Observation Trends Line Chart | [Observation Trends](http://127.0.0.1:3000/observation-trends.html) | Implemented |
-| T2 | Seasonal Species Heatmap | [Seasonal Species Heatmap](http://127.0.0.1:3000/seasonal-species-heatmap.html) | Implemented |
-| T3 | Holiday Observation Patterns (comparison line chart) | [Holiday Observation Patterns](http://127.0.0.1:3000/holiday-observation-patterns.html) | Implemented (Step 5, b41a613) |
-| T4 | Location Combination Bar Chart | [Hotspot Combination Species Coverage](http://127.0.0.1:3000/location-combinations.html) | Implemented |
-| T4 | UpSet Chart | — | Not implemented |
+| Task | Visualization | URL | Implementation status | Implementation commit |
+| --- | --- | --- | --- | --- |
+| Infrastructure | Filter demo | [Filter demo](http://127.0.0.1:3000/filter-demo.html) | Implemented | `66afa35` |
+| T1 | County Choropleth | [County Choropleth](http://127.0.0.1:3000/county-choropleth.html) | Implemented | `e2492ab` |
+| T1 | County Richness Bar Chart | [County Richness Bar Chart](http://127.0.0.1:3000/county-richness-bar.html) | Implemented | `d8f4a74` |
+| T2 | Observation Trends Line Chart | [Observation Trends](http://127.0.0.1:3000/observation-trends.html) | Implemented | `fe0bcbf` |
+| T2 | Seasonal Species Heatmap | [Seasonal Species Heatmap](http://127.0.0.1:3000/seasonal-species-heatmap.html) | Implemented | `5b2d7e4` |
+| T3 | Holiday Observation Patterns (comparison line chart) | [Holiday Observation Patterns](http://127.0.0.1:3000/holiday-observation-patterns.html) | Implemented | `b41a613` |
+| T4 | Location Combination Bar Chart | [Hotspot Combination Species Coverage](http://127.0.0.1:3000/location-combinations.html) | Implemented | `bd0f0b5` |
+| T4 | UpSet Chart | — | Not implemented | — |
 
 ### T1 — County Choropleth
 
