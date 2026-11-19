@@ -1,11 +1,9 @@
 .county-bars-page { margin: 0; background: #f8fafc; color: #1f2937; font: 15px system-ui, sans-serif; }
-.county-bars-page main { max-width: 1100px; margin: 24px auto; padding: 0 20px; }
-.county-bars-page h1 { margin-bottom: 8px; font-size: 28px; }
 .county-bars-page h2 { margin-bottom: 8px; font-size: 20px; }
 .county-bars-page p { line-height: 1.5; }
-.county-bars-page__note, #scroll-hint { color: #4b5563; font-size: 14px; }
+.county-bars-page__note, [data-role="scroll-hint"] { color: #4b5563; font-size: 14px; }
 .county-bars-page__x-label { text-align: center; font-weight: 600; margin-top: 4px; }
-#richness-chart { border: 1px solid #d1d5db; border-radius: 6px; background: white; }
+[data-role="richness-chart"] { border: 1px solid #d1d5db; border-radius: 6px; background: white; }
 .county-bars__layout { display: grid; grid-template-columns: 84px minmax(0, 1fr); }
 .county-bars__viewport { min-width: 0; overflow-x: auto; }
 .county-bars__viewport:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }

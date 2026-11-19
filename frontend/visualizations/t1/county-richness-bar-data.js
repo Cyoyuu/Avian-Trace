@@ -28,13 +28,13 @@ export function sortCountyRichness(rows, sortOrder = "desc") {
 }
 
 /** Reserve a readable slot per county and enough room for untruncated angled labels. */
-export function getCountyBarLayout(rows, viewportWidth) {
+export function getCountyBarLayout(rows, viewportWidth, sizing = {}) {
   const labelWidth = Math.max(0, ...rows.map(row => row.countyName.length * 7));
   const angle = 65 * Math.PI / 180;
   const left = Math.ceil(labelWidth * Math.cos(angle)) + 12;
   const bottom = Math.max(140, Math.ceil(labelWidth * Math.sin(angle)) + 28);
   const top = 24;
-  const plotHeight = 400;
+  const plotHeight = sizing.plotHeight ?? 400;
   const width = Math.max(viewportWidth, left + rows.length * 42 + 20);
   return { width, height: top + plotHeight + bottom, left, right: 20, top, plotHeight, bottom };
 }

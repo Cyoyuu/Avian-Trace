@@ -1,17 +1,31 @@
-import { createFilterStore } from "./filters/filter-store.js";
-import { createFilterHeader } from "./components/filter-header.js";
-import { loadCountyRichness, loadGeographicOptions } from "./api/info-loader.js";
-import { sortCountyRichness } from "./charts/county-richness-bar-data.js";
-import { createCountyRichnessBarChart } from "./charts/county-richness-bar.js";
+import { sortCountyRichness } from "./county-richness-bar-data.js";
+import { createCountyRichnessBarChart } from "./county-richness-bar.js";
+import { createVisualizationFrame } from "../../components/visualization-frame.js";
 
-const store = createFilterStore();
-const status = document.querySelector("#chart-status");
-const container = document.querySelector("#richness-chart");
-const selection = document.querySelector("#county-selection");
+const HTML = `
+<p id="chart-status" role="status" aria-live="polite">Loading geographic options…</p>
+      <h2 id="chart-title">Select a state</h2>
+      <p id="scroll-hint">County labels are shown in full. Scroll the chart horizontally when needed; the Y-axis stays visible.</p>
+      <div id="richness-chart" aria-busy="true"></div>
+      <p class="county-bars-page__x-label">County</p>
+      <p id="county-selection" aria-live="polite">No county highlighted.</p>
+      <p class="county-bars-page__note">Choose a county in the header, click its bar, or focus its column and press Enter or Space to highlight it. All counties remain in the statewide comparison. Selected counties are brought into view. Choose “Select county” to clear the highlight.</p>
+      <p class="county-bars-page__note">Richness counts each species once across 2012–2025. Observation counts are species-category observation records, not individual birds, checklists, or population estimates. All counties returned by the data endpoint are included, whether or not map boundaries are available.</p>
+<div id="bar-tooltip" class="county-bars__tooltip" role="tooltip" hidden></div>
+`;
+
+export function mountCountyRichnessBar({ container: host, store, data, geography, taxa, d3 = globalThis.d3, topojson = globalThis.topojson, sizing = {}, onExploreOverlap }) {
+  const frame = createVisualizationFrame({ container: host, html: HTML, className: "county-bars-page" });
+  const { elements } = frame;
+  let disposed = false;
+  const { loadCountyRichness, loadGeographicOptions } = data;
+
+const status = elements["chart-status"];
+const container = elements["richness-chart"];
+const selection = elements["county-selection"];
 const cache = new Map();
 let displayedRows = [];
 let requestId = 0;
-let header;
 let chart;
 let unsubscribe;
 
@@ -31,23 +45,16 @@ function renderCurrent() {
 
 async function initialize() {
   try {
-    const geography = await loadGeographicOptions();
     const states = geography.filter(row => row.region_level === "state");
-    header = createFilterHeader({
-      container: "#filters", store, chartId: "t1",
-      options: {
-        stateCode: states.map(row => ({ value: row.region_code, label: row.region_name })),
-        countyCode: geography.filter(row => row.region_level === "county").map(row => ({ value: row.region_code, label: row.region_name }))
-      }
-    });
-    chart = createCountyRichnessBarChart({
+    chart = createCountyRichnessBarChart({ d3, sizing,
       container,
-      tooltip: document.querySelector("#bar-tooltip"),
+      tooltip: elements["bar-tooltip"],
       onCountySelect: countyCode => store.setShared({ countyCode })
     });
     chart.clear();
 
     async function update({ filters, changedKeys }) {
+      if (disposed) return;
       if (changedKeys.length && changedKeys.every(key => key === "shared.countyCode")) {
         updateHighlight(filters.countyCode);
         return;
@@ -62,12 +69,12 @@ async function initialize() {
       selection.textContent = "No county highlighted.";
       if (!filters.stateCode) {
         status.textContent = "Select a state to compare its counties.";
-        document.querySelector("#chart-title").textContent = "Select a state";
+        elements["chart-title"].textContent = "Select a state";
         container.setAttribute("aria-busy", "false");
         return;
       }
       const stateName = states.find(row => row.region_code === filters.stateCode)?.region_name || filters.stateCode;
-      document.querySelector("#chart-title").textContent = stateName + " · 2012–2025";
+      elements["chart-title"].textContent = stateName + " · 2012–2025";
       status.textContent = "Loading all counties in " + stateName + "…";
       container.setAttribute("aria-busy", "true");
       try {
@@ -83,6 +90,7 @@ async function initialize() {
           ? "Showing all " + rows.length + " counties in " + stateName + ". Sort or select a county without removing others."
           : "No county summaries available for " + stateName + ".";
       } catch (error) {
+        if (disposed) return;
         if (currentRequest !== requestId) return;
         status.textContent = "Unable to load county richness: " + error.message + ". Reselect a state to retry.";
       } finally {
@@ -92,16 +100,18 @@ async function initialize() {
     unsubscribe = store.subscribe({ chartId: "t1" }, update);
     await update({ filters: store.getFilters("t1"), changedKeys: [] });
   } catch (error) {
+        if (disposed) return;
     status.textContent = "Unable to initialize county bar chart: " + error.message;
     container.setAttribute("aria-busy", "false");
   }
 }
 
-initialize();
-window.addEventListener("pagehide", event => {
-  if (event.persisted) return;
-  requestId += 1;
-  unsubscribe?.();
-  header?.destroy();
-  chart?.destroy();
-});
+  const ready = initialize();
+  return { root: frame.root, ready, destroy() {
+    if (disposed) return; disposed = true;
+    requestId++;
+    unsubscribe?.();
+
+    chart?.destroy(); frame.destroy();
+  } };
+}

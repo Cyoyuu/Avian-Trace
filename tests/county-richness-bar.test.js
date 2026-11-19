@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { sortCountyRichness, getCountyBarLayout } from "../frontend/charts/county-richness-bar-data.js";
+import { sortCountyRichness, getCountyBarLayout } from "../frontend/visualizations/t1/county-richness-bar-data.js";
 import { createFilterStore } from "../frontend/filters/filter-store.js";
 import { getFilterEntries } from "../frontend/filters/filter-definitions.js";
 

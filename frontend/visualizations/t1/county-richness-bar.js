@@ -1,8 +1,8 @@
-import { COLORS } from "./constants.js";
+import { COLORS } from "../../charts/constants.js";
 import { getCountyBarLayout } from "./county-richness-bar-data.js";
 
 // Adapt task1-chart.js's keyed joins and selection colors to a vertical county axis.
-export function createCountyRichnessBarChart({ container, tooltip, onCountySelect }) {
+export function createCountyRichnessBarChart({ d3 = globalThis.d3, sizing = {}, container, tooltip, onCountySelect }) {
   const root = d3.select(container).append("div").attr("class", "county-bars__layout");
   const yAxis = root.append("svg").attr("class", "county-bars__y-axis").attr("aria-hidden", "true");
   const viewport = root.append("div").attr("class", "county-bars__viewport")
@@ -58,7 +58,7 @@ export function createCountyRichnessBarChart({ container, tooltip, onCountySelec
     current = { ...model };
     const { rows, selectedCounty } = current;
     hideTooltip();
-    layout = getCountyBarLayout(rows, viewport.node().clientWidth);
+    layout = getCountyBarLayout(rows, viewport.node().clientWidth, sizing);
     const { width, height, left, right, top, plotHeight } = layout;
     svg.attr("width", width).attr("height", height);
     yAxis.attr("width", 84).attr("height", height);
