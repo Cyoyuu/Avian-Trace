@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DuckDBInstance } from "@duckdb/node-api";
 import { SEASONAL_SPECIES_TREND_SQL, getTrendMonths, validateSeasonalTrend } from "../backend/species-trend-query.js";
-import { buildYearlyTrendSeries } from "../frontend/charts/observation-trends-data.js";
+import { buildYearlyTrendSeries } from "../frontend/visualizations/t2/observation-trends-data.js";
 import { createFilterStore } from "../frontend/filters/filter-store.js";
 import { getFilterEntries } from "../frontend/filters/filter-definitions.js";
 
