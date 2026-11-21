@@ -123,7 +123,7 @@ view.controls is the compact toolbar slot (undefined in standalone mode). Header
 
 ### Target panel allocations
 
-The combined dashboard scrolls vertically, with a sticky shared filter header. Geography and trends use two columns on wider screens; the heatmap and planner stack earlier to give their controls and labels more room. Chart panels reserve vertical space independently of the browser viewport height.
+The combined dashboard defaults to Fit to screen at content sizes of 1180 × 720 or larger. The desktop Layout selector also offers Scroll for detail. Smaller windows use vertical page scrolling. Shared filters remain at the top and both layouts use the same chart instances and store. Geography and trends use two columns on wider screens; the heatmap and planner stack earlier to give their controls and labels more room. Chart panels reserve vertical space independently of the browser viewport height.
 
 | Position | View | Target width × height |
 | --- | --- | --- |

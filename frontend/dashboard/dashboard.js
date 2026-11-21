@@ -13,12 +13,19 @@ export function mountDashboard({ container, store, data, geography, taxa, d3, to
   const document = container.ownerDocument;
   const root = document.createElement("div");
   root.className = "dashboard-shell";
+  root.dataset.layout = "fit";
   root.innerHTML = `
     <header class="dashboard-header">
       <div class="dashboard-brand">
         <h1>Avian Trace</h1>
         <span class="dashboard-subtitle"></span>
         <p class="dashboard-guidance">Select a county on the map to explore.</p>
+        <label class="dashboard-layout">Layout
+          <select aria-label="Dashboard layout">
+            <option value="fit">Fit to screen</option>
+            <option value="scroll">Scroll for detail</option>
+          </select>
+        </label>
       </div>
       <div data-dashboard-shared aria-label="Shared dashboard filters"></div>
     </header>
@@ -37,6 +44,9 @@ export function mountDashboard({ container, store, data, geography, taxa, d3, to
       </div>
     </div>`;
   container.append(root);
+  const layoutControl = root.querySelector(".dashboard-layout select");
+  function changeLayout() { root.dataset.layout = layoutControl.value; }
+  layoutControl.addEventListener("change", changeLayout);
   const filterOptions = createFilterOptions(geography, taxa, {
     stateCodes: Object.values(STATE_ABBREVIATIONS).map(code => "US-" + code)
   });
@@ -69,6 +79,7 @@ export function mountDashboard({ container, store, data, geography, taxa, d3, to
     destroy() {
       if (disposed) return;
       disposed = true;
+      layoutControl.removeEventListener("change", changeLayout);
       panels.forEach(panel => panel.destroy());
       sharedHeader.destroy();
       root.remove();
