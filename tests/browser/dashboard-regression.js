@@ -39,22 +39,23 @@ async function run() {
   tripMonth.value = "5";
   tripMonth.dispatchEvent(new Event("change"));
   store.setChart("t4", { candidateLocationIds: ["L1823657", "L12764246", "L453924", "L28385444"] });
-  await until(() => find('[data-role="frequency-plot"] tbody tr'));
-  const hotspotRows = () => [...root.querySelectorAll('[data-role="frequency-plot"] tbody tr')];
-  assert(hotspotRows().length === 1 && hotspotRows()[0].cells[2].textContent === "35.37", "Incorrect two-stop itinerary ranking");
-  assert(hotspotRows()[0].cells[1].textContent.includes("Acton Arboretum") &&
-    hotspotRows()[0].cells[1].textContent.includes("Alewife Brook Reservation"), "Incorrect best itinerary");
+  await until(() => find('[data-role="frequency-plot"] .itinerary-bars__row'));
+  const hotspotRows = () => [...root.querySelectorAll('[data-role="frequency-plot"] .itinerary-bars__row')];
+  assert(hotspotRows().length === 1 && hotspotRows()[0].querySelector(".itinerary-bars__value").textContent === "35.37", "Incorrect two-stop itinerary ranking");
+  assert(hotspotRows()[0].getAttribute("aria-label").includes("Acton Arboretum") &&
+    hotspotRows()[0].getAttribute("aria-label").includes("Alewife Brook Reservation"), "Incorrect best itinerary");
   assert(find(".itinerary-note").textContent.includes("Ada Govan Bird Sanctuary"), "Missing checklist coverage not disclosed");
-  const originalTable = find('[data-role="frequency-plot"] table');
+  assert(!find(".itinerary-result-details").open, "Itinerary details should start collapsed");
+  const originalTable = find('[data-role="frequency-plot"] .itinerary-bars');
   store.setShared({ taxonId: "avibase-4E74AE22" });
-  assert(originalTable === find('[data-role="frequency-plot"] table'), "Species filter must not change multi-species itineraries");
+  assert(originalTable === find('[data-role="frequency-plot"] .itinerary-bars'), "Species filter must not change multi-species itineraries");
   assert(find('[data-role="frequency-status"]').textContent.includes("May · 2016–2025"), "Reference period missing");
-  assert(find(".itinerary-highlight").textContent.includes("215 complete checklists") &&
-    find(".itinerary-highlight").textContent.includes("396 complete checklists"), "Pooled denominators missing");
+  assert(find(".itinerary-stop-list").textContent.includes("215 complete checklists") &&
+    find(".itinerary-stop-list").textContent.includes("396 complete checklists"), "Pooled denominators missing");
   tripMonth.value = "6";
   tripMonth.dispatchEvent(new Event("change"));
   await until(() => find('[data-role="frequency-status"]').textContent.includes("June · 2016–2025") && find('[data-role="frequency-plot"]').getAttribute("aria-busy") === "false");
-  assert(hotspotRows()[0].cells[2].textContent === "26.98", "June failed to use its own monthly summaries");
+  assert(hotspotRows()[0].querySelector(".itinerary-bars__value").textContent === "26.98", "June failed to use its own monthly summaries");
 
   find('.county[data-county-code="US-MA-025"]').dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
   assert(store.getState().shared.countyCode === "US-MA-025", "Selecting the map did not update the county");

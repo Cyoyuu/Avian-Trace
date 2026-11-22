@@ -1,12 +1,12 @@
 import { createItinerarySpeciesPanel } from "./itinerary-species.js";
 import { MONTH_NAMES } from "../t2/species-heatmap-data.js";
-import { renderCountyItineraries, renderManualItineraries } from "./itinerary-chart.js";
+import { renderItineraryBars, renderItineraryStops } from "./itinerary-chart.js";
 import { createHotspotPicker } from "../../components/hotspot-picker.js";
 import { createVisualizationFrame } from "../../components/visualization-frame.js";
 import { organizeHotspotFrequencies, rankItineraries } from "./itinerary-data.js";
 
 const HTML = `
-  <h2>Birding itinerary planner</h2>
+  <h2>Birding itinerary</h2>
   <div class="itinerary-controls" id="itinerary-controls">
     <div><label for="frequency-month">Trip month</label><select id="frequency-month"></select></div>
     <div><label for="itinerary-stops">Stops</label><select id="itinerary-stops"></select></div>
@@ -49,7 +49,7 @@ export function mountHotspotFrequency({ container, store, data, taxa = new Map()
   const picker = createHotspotPicker({ container: elements["hotspot-picker"], store, loadLocations: data.loadHotspots });
   let request = 0;
   let hotspots, countyPlan, referenceYears, countySpecies;
-  let previewKey, speciesQuery = "";
+  let previewKey, speciesQuery = "", detailsOpen = false;
 
   function render() {
     if (!hotspots && !countyPlan) return;
@@ -62,45 +62,44 @@ export function mountHotspotFrequency({ container, store, data, taxa = new Map()
     const period = month + " · " + coverage;
     const eligible = countyPlan?.eligibleHotspots ?? hotspots.filter(hotspot => hotspot.complete !== null).length;
     const excluded = hotspots?.filter(hotspot => hotspot.complete === null) ?? [];
-    const recommendation = countyPlan?.itineraries[stops - 1];
-    const ranked = countyPlan ? (recommendation ? [recommendation] : []) : rankItineraries(hotspots, stops);
+    const plans = countyPlan?.itineraries ?? rankItineraries(hotspots, stops);
+    const selected = countyPlan ? plans[stops - 1] : plans.find(itinerary => itinerary.key === previewKey) ?? plans[0];
     plot.replaceChildren();
-    if (excluded.length) {
-      const note = document.createElement("p");
-      note.className = "itinerary-note";
-      note.textContent = "No complete checklists for " + month + ": " + excluded.map(hotspot => hotspot.name).join(", ") + ".";
-      plot.append(note);
-    }
-    if (!ranked.length) {
+    if (!selected) {
       status.textContent = eligible + " hotspots have data for " + period + ". Choose fewer stops or another month.";
       return;
     }
     status.textContent = countyPlan
-      ? (stops === 1 ? "Top hotspot" : "Approximate recommendation") + " · " + number.format(eligible) + " eligible county hotspots · " + period
-      : ranked.length + (ranked.length === 1 ? " itinerary" : " itineraries") + " · " + period + " · " + stops + (stops === 1 ? " stop" : " stops");
-    let speciesHotspots;
-    if (countyPlan) {
-      speciesHotspots = recommendation.hotspots.map(hotspot => countySpecies.get(hotspot.id));
-      plot.append(renderCountyItineraries(document, countyPlan.itineraries, stops));
-      if (countyPlan.totalHotspots > eligible) {
-        const note = document.createElement("p");
-        note.className = "itinerary-note";
-        note.textContent = number.format(countyPlan.totalHotspots - eligible) + " hotspots had no complete checklists for " + month + " in the reference period" + ".";
-        plot.append(note);
-      }
-    } else {
-      const selected = ranked.find(itinerary => itinerary.key === previewKey) ?? ranked[0];
-      speciesHotspots = selected.hotspots;
-      plot.append(renderManualItineraries(document, ranked, selected, key => {
-        const scrollTop = plot.querySelector(".itinerary-table-scroll").scrollTop;
-        previewKey = key;
-        render();
-        plot.querySelector(".itinerary-table-scroll").scrollTop = scrollTop;
-        plot.querySelector('.itinerary-preview-button[aria-pressed="true"]')?.focus({ preventScroll: true });
-      }));
+      ? "County-wide (approx.) · " + number.format(eligible) + " eligible hotspots · " + period
+      : plans.length + (plans.length === 1 ? " combination" : " combinations") + " · " + stops + (stops === 1 ? " stop" : " stops") + " · " + period;
+    plot.append(renderItineraryBars(document, { plans, selected, countyWide: Boolean(countyPlan), onSelect(plan, index) {
+      const scroller = plot.querySelector(".itinerary-bars__rows");
+      const scrollTop = scroller.scrollTop;
+      if (countyPlan) stopSelect.value = String(index + 1);
+      else previewKey = plan.key;
+      render();
+      plot.querySelector(".itinerary-bars__rows").scrollTop = scrollTop;
+      plot.querySelector('.itinerary-bars__row[aria-pressed="true"]')?.focus({ preventScroll: true });
+    } }));
+
+    const details = document.createElement("details");
+    details.className = "itinerary-result-details";
+    details.open = detailsOpen;
+    details.addEventListener("toggle", () => { if (details.isConnected) detailsOpen = details.open; });
+    const summary = document.createElement("summary");
+    summary.textContent = "Itinerary details";
+    details.append(summary, renderItineraryStops(document, selected));
+    if (excluded.length || (countyPlan && countyPlan.totalHotspots > eligible)) {
+      const note = document.createElement("p");
+      note.className = "itinerary-note";
+      note.textContent = excluded.length
+        ? "No complete checklists for " + month + ": " + excluded.map(hotspot => hotspot.name).join(", ") + "."
+        : number.format(countyPlan.totalHotspots - eligible) + " county hotspots had no complete checklists for this period.";
+      details.append(note);
     }
-    plot.append(createItinerarySpeciesPanel(document, speciesHotspots, taxa, period, speciesQuery,
-      query => { speciesQuery = query; }));
+    const speciesHotspots = countyPlan ? selected.hotspots.map(hotspot => countySpecies.get(hotspot.id)) : selected.hotspots;
+    details.append(createItinerarySpeciesPanel(document, speciesHotspots, taxa, period, speciesQuery, query => { speciesQuery = query; }));
+    plot.append(details);
   }
 
   async function update() {

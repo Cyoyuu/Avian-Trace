@@ -84,7 +84,7 @@ html:has(body.dashboard-page) { scroll-padding-top: 112px; }
   .dashboard-shell[data-layout="fit"] .dashboard-grid {
     flex: 1;
     min-height: 0;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.17fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.23fr);
     gap: 8px;
   }
   .dashboard-shell[data-layout="fit"] .dashboard-row {
@@ -104,19 +104,15 @@ html:has(body.dashboard-page) { scroll-padding-top: 112px; }
   }
   .dashboard-shell[data-layout="fit"] .dashboard-panel[data-panel="hotspots"] .visualization-compact__header { flex-wrap: wrap; gap: 4px 7px; }
   .dashboard-shell[data-layout="fit"] .dashboard-panel[data-panel="hotspots"] .visualization-compact__access { display: none; }
-  .dashboard-shell[data-layout="fit"] .dashboard-panel[data-panel="hotspots"] .itinerary-controls { gap: 5px; }
+  .dashboard-shell[data-layout="fit"] .dashboard-panel[data-panel="hotspots"] .itinerary-controls,
+  .dashboard-shell[data-layout="fit"] .dashboard-panel[data-panel="hotspots"] .itinerary-controls > div { gap: 4px; }
+  .dashboard-shell[data-layout="fit"] .dashboard-panel[data-panel="hotspots"] .itinerary-controls select { max-width: 92px; padding-inline: 4px; }
+  .dashboard-shell[data-layout="fit"] .dashboard-panel[data-panel="hotspots"] .visualization-compact__header h2 { font-size: 13px; }
   .dashboard-shell[data-layout="fit"] .dashboard-panel[data-panel="hotspots"] [data-plot] {
     flex: 1 1 0;
     overflow: auto;
   }
-  .dashboard-shell[data-layout="fit"] .itinerary-results {
-    grid-template-columns: minmax(144px, .8fr) minmax(0, 1.6fr);
-    gap: 8px;
-  }
-  .dashboard-shell[data-layout="fit"] .itinerary-highlight { padding: 8px; }
-  .dashboard-shell[data-layout="fit"] .itinerary-highlight h4 { margin-top: 8px; }
-  .dashboard-shell[data-layout="fit"] .itinerary-highlight li { padding-block: 4px; }
-  .dashboard-shell[data-layout="fit"] .itinerary-highlight__value { font-size: 26px; }
-  .dashboard-shell[data-layout="fit"] .itinerary-comparison th,
-  .dashboard-shell[data-layout="fit"] .itinerary-comparison td { padding-block: 4px; }
+  .dashboard-shell[data-layout="fit"] .itinerary-bars__row { min-height: 19px; padding-block: 1px; }
+  .dashboard-shell[data-layout="fit"] .itinerary-bars__rows { max-height: 112px; }
+  .dashboard-shell[data-layout="fit"] .itinerary-result-details { margin-top: 2px; padding-top: 2px; }
 }
